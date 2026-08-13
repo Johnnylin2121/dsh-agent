@@ -264,7 +264,7 @@ python scripts/analysis.py long-tail --input data.xlsx          # 长尾细分
 ## 六、默认输出路径
 
 ```
-/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/工作/选品报告/
+{VAULT_PATH}/工作/选品报告/
 ├── {日期} {文件名} ABA选品分析.md          # 汇总调研报告（含6种筛选）
 ├── {日期} 深度分析 {关键词}.md              # 深度分析报告
 ├── {日期} {文件名} 选品分析.md              # 卖家精灵标准数据报告
@@ -296,13 +296,13 @@ python scripts/analysis.py long-tail --input data.xlsx          # 长尾细分
 # Step 1: 汇总调研
 python scripts/analysis.py aba-report /
   --input "~/Desktop/ABAKeywordTrend-MX-2026第29周-745797.xlsx" /
-  --output "/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/工作/选品报告/2026-07-25 MX ABA选品分析.md"
+  --output "{VAULT_PATH}/工作/选品报告/2026-07-25 MX ABA选品分析.md"
 
 # Step 2: 对感兴趣的关键词进行深度分析
 python scripts/analysis.py deep-dive /
   --input "~/Desktop/ABAKeywordTrend-MX-2026第29周-745797.xlsx" /
   --keyword "teclado inalambrico" /
-  --output "/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/工作/选品报告/2026-07-25 深度分析 teclado inalambrico.md"
+  --output "{VAULT_PATH}/工作/选品报告/2026-07-25 深度分析 teclado inalambrico.md"
 ```
 
 ### 输出示例

@@ -37,7 +37,7 @@ description: >
 ### Step 1: 确定标的
 
 - 用户提供股票名称或代码
-- 若提供名称，在 `/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/wiki/entities/` 中查找对应 entity 文件获取代码
+- 若提供名称，在 `{VAULT_PATH}/wiki/entities/` 中查找对应 entity 文件获取代码
 - 若未找到，通过 web search 确认代码
 
 ### Step 2: 并行获取数据
@@ -59,14 +59,14 @@ description: >
 
 ### Step 4: 关联现有持仓
 
-读取 `/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/交易计划/当前持仓.md`：
+读取 `{VAULT_PATH}/交易体系/交易计划/当前持仓.md`：
 - 若标的在持仓中 → 标注当前逻辑状态，分析是否需要更新
 - 若标的在待入场计划中 → 标注入场条件完成度变化
 - 若不在持仓/计划中 → 标注"观察中"
 
 ### Step 5: 写入文件
 
-输出路径：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/wiki/entities/{股票名}-深度扫描-{YYYY-MM-DD}.md`
+输出路径：`{VAULT_PATH}/wiki/entities/{股票名}-深度扫描-{YYYY-MM-DD}.md`
 
 ## 输出格式
 

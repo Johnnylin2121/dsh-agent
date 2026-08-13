@@ -24,16 +24,16 @@ description: >
 ### Step 1: 收集比对数据
 
 读取以下文件：
-1. **前日复盘**：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/每日复盘/{前日} 每日复盘.md`
+1. **前日复盘**：`{VAULT_PATH}/交易体系/每日复盘/{前日} 每日复盘.md`
    - 提取"可验证假设"（§十一）
    - 提取"明日关注点"（§七）
    - 提取板块判断（§四）
    - 提取量能判断（§一）
-2. **前前日复盘**：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/每日复盘/{前前日} 每日复盘.md`
+2. **前前日复盘**：`{VAULT_PATH}/交易体系/每日复盘/{前前日} 每日复盘.md`
    - 提取板块判断和量能判断
 3. **当日复盘**（刚生成的）
    - 提取板块判断、量能判断、核心驱动
-4. **交易计划**：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/交易计划/当前持仓.md`
+4. **交易计划**：`{VAULT_PATH}/交易体系/交易计划/当前持仓.md`
    - 提取各持仓标的的逻辑状态
 
 ### Step 2: 执行四维检测

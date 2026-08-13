@@ -53,7 +53,7 @@ description: >
 
 ### Step 3: 映射到现有知识库
 
-从 `/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/wiki/entities/` 和 `wiki/topics/` 中筛选相关实体和主题：
+从 `{VAULT_PATH}/wiki/entities/` 和 `wiki/topics/` 中筛选相关实体和主题：
 - 匹配 tags 和 frontmatter 中的行业/板块关键词
 - 标注每个受影响标的的受益/受损方向和逻辑
 
@@ -66,7 +66,7 @@ description: >
 
 ### Step 5: 写入追踪文件
 
-输出路径：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/wiki/topics/{政策名}-政策追踪.md`
+输出路径：`{VAULT_PATH}/wiki/topics/{政策名}-政策追踪.md`
 
 同时更新相关 entity 文件的 `sources` 字段，引用新创建的追踪文件。
 

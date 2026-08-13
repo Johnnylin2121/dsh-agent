@@ -5,8 +5,8 @@ description: A股每日复盘工作流——涵盖盘前观察清单制定、盘
 
 # 每日复盘工作流
 
-> **Vault 路径**：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault`（macOS，OneDrive 同步）。
-> ⚠️ 本 Vault 在 OneDrive 下，大量/频繁写入可能触发同步延迟与文件锁——单篇读取、少量写入安全；批量写入建议分批。
+> **Vault 路径**：`{VAULT_PATH}`（占位符，由 agent 从 MEMORY.md 读取本机实际路径后替换）。
+> ⚠️ 本 Vault 可能在 OneDrive 下，大量/频繁写入可能触发同步延迟与文件锁——单篇读取、少量写入安全；批量写入建议分批。
 
 ## 核心原则
 
@@ -48,10 +48,10 @@ date "+%Y-%m-%d %A"
 ```
 
 **输入**：
-- 前两个交易日复盘文件（`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/每日复盘/`）
-- 当日财经早读（`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/财经早读/`）
-- 前日盘前预测和交易观察清单（`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/盘前预测/`）
-- 交易计划文件（`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/交易计划/`）
+- 前两个交易日复盘文件（`{VAULT_PATH}/交易体系/每日复盘/`）
+- 当日财经早读（`{VAULT_PATH}/交易体系/财经早读/`）
+- 前日盘前预测和交易观察清单（`{VAULT_PATH}/交易体系/盘前预测/`）
+- 交易计划文件（`{VAULT_PATH}/交易体系/交易计划/`）
 
 **步骤**：
 1. **追溯前两个交易日复盘**：读取最近两个交易日的复盘文件，如某日无复盘文件则继续向前追溯
@@ -185,13 +185,13 @@ date "+%Y-%m-%d %A"
 创建当日复盘文件后，检查 `交易体系/每日复盘/` 目录，将超过前两个交易日的复盘文件移入 `存档/` 子目录。主目录仅保留今日、前日、前前日三个交易日的复盘文件。
 ```bash
 # 获取目录中所有复盘文件，按日期排序
-ls "/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/每日复盘/"*.md | sort
+ls "{VAULT_PATH}/交易体系/每日复盘/"*.md | sort
 # 将早于前前日的文件移入存档
-mv "/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/每日复盘/YYYY-MM-DD 每日复盘.md" "/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/交易体系/每日复盘/存档/"
+mv "{VAULT_PATH}/交易体系/每日复盘/YYYY-MM-DD 每日复盘.md" "{VAULT_PATH}/交易体系/每日复盘/存档/"
 ```
 
 **复盘文件位置**：
-`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/30-Resources/每日复盘/YYYY-MM-DD 每日复盘.md`
+`{VAULT_PATH}/30-Resources/每日复盘/YYYY-MM-DD 每日复盘.md`
 
 **复盘结构**（参考模板）：
 ```markdown
@@ -379,7 +379,7 @@ curl -s -X PATCH "https://api.notion.com/v1/blocks/{block_id}/children" /
 
 ## Obsidian集成
 
-**Vault路径**：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault`
+**Vault路径**：`{VAULT_PATH}`
 
 **文件结构**：
 ```

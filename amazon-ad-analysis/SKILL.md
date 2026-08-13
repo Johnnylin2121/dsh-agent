@@ -720,7 +720,7 @@ ACOS = CPC ÷ (CVR × 客单价)
 
 **Excel附件检查**：
 - [ ] 已创建Excel文件（产品概览、广告类型对比、搜索词Top10、词根表现汇总、否定词执行清单、关键词覆盖分析）
-- [ ] Excel文件已保存到正确路径：`/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/附件/4.ASIN深入分析/{ASIN} 分析数据.xlsx`
+- [ ] Excel文件已保存到正确路径：`{VAULT_PATH}/附件/4.ASIN深入分析/{ASIN} 分析数据.xlsx`
 - [ ] Markdown报告中的附件链接可正确打开
 
 **数据验证规则**：
@@ -733,7 +733,7 @@ ACOS = CPC ÷ (CVR × 客单价)
 **Obsidian Vault路径**：
 
 ```
-/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/
+{VAULT_PATH}/
 ├── 工作/
 │   └── 亚马逊分析/
 │       ├── {日期}/                              # 单店铺分析（按日期）
@@ -758,8 +758,8 @@ ACOS = CPC ÷ (CVR × 客单价)
 - Excel文件：`{日期} {店铺名} 分析数据.xlsx` 或 `{ASIN} 分析数据.xlsx`
 
 **文件存放规则**：
-- Markdown报告 → `/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/工作/亚马逊分析/{日期}/` 文件夹
-- Excel可视化文件 → `/Users/johnnylin/Library/CloudStorage/OneDrive-个人/ObsidianVault/附件/` 下对应文件夹
+- Markdown报告 → `{VAULT_PATH}/工作/亚马逊分析/{日期}/` 文件夹
+- Excel可视化文件 → `{VAULT_PATH}/附件/` 下对应文件夹
 - 报告中引用Excel：在报告顶部添加 `📎 **附件**：[[相对路径/文件名.xlsx|显示名]]`
 
 #### Markdown报告附件引用格式
