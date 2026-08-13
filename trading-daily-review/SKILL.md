@@ -5,8 +5,8 @@ description: A股每日复盘工作流——涵盖盘前观察清单制定、盘
 
 # 每日复盘工作流
 
-> **Vault 路径**：`{VAULT_PATH}`（macOS，OneDrive 同步）。
-> ⚠️ 本 Vault 在 OneDrive 下，大量/频繁写入可能触发同步延迟与文件锁——单篇读取、少量写入安全；批量写入建议分批。
+> **Vault 路径**：`{VAULT_PATH}`（占位符，由 agent 从 MEMORY.md 读取本机实际路径后替换）。
+> ⚠️ 本 Vault 可能在 OneDrive 下，大量/频繁写入可能触发同步延迟与文件锁——单篇读取、少量写入安全；批量写入建议分批。
 
 ## 核心原则
 
