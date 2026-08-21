@@ -20,20 +20,27 @@ description: A股每日复盘工作流——涵盖盘前观察清单制定、盘
 8. **时间校验**：每个阶段开始前必须先获取当前日期/时间，确认今日日期、前一交易日、前二交易日，避免日期错误
 9. **前日复盘追溯**：必须关联前两个交易日的复盘文件。如某交易日无复盘文件，继续向前追溯，直到找到两个有效复盘文件
 
-## 数据双源校验（已安装 dsh-xueqiu 插件后适用）
+## 数据双源校验（本机 HTTPS 修复前：东财工具 + 新浪交叉比对）
 
-行情读数以**东方财富为口径基准**（沿用 MEMORY 中量能外推、成交额锚点等既有修正规则），雪球原生工具做**可视化与情绪补充**：
+> ⚠️ 本机 Windows schannel 出站 TLS 损坏（`SEC_E_NO_CREDENTIALS`），**curl 与 xueqiu 工具均不可用**。行情取数统一走 `dsh-market.mjs`（node.fetch/OpenSSL）：
+> ```bash
+> MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+> node "$MK" index / stocks "..." / sector / sina "sh600519,..." / kline "SH600519" 101 120
+> ```
+
+行情读数以**东方财富（`index/stocks`）为口径基准**（沿用 MEMORY 中量能外推、成交额锚点等既有修正规则），**新浪（`sina`）做交叉复核**（含买卖盘）：
 
 | 用途 | 工具 | 说明 |
 |------|------|------|
-| 实时行情核对 | `xueqiu_quote` | 指数/个股行情交叉比对，一次最多 20 只 |
-| K线/分时可视化 | `xueqiu_kline` | 对话内直接渲染蜡烛图（周期/根数/区间），省去 curl+文本解析 |
-| 7×24 快讯 | `xueqiu_news` | 盘中/盘后消息面补充 |
-| 热榜/市场情绪 | `xueqiu_hot` | 情绪强度参考（注意热榜≠涨幅榜） |
-| 个股热议大V | `xueqiu_kol` | 舆情参考 |
-| 代码/名称定位 | `xueqiu_search` | 中文名/拼音/代码互查 |
+| 指数/多标的口径 | `dsh-market index/stocks` | 东财主数据，成交额为准 |
+| 交叉复核 | `dsh-market sina` | 新浪实时含 bid/ask，与东财比对 |
+| K线 | `dsh-market kline` | 东财K线，无图表仅数据（101/102/103/5/15/30/60） |
+| 板块资金 | `dsh-market sector` | 主力净流入方向 |
+| 页面抓取 | `dsh-market get "<url>"` | 公告/研报/财务页转纯文本 |
 
-**冲突规则（硬性）**：两源数值不一致时，在复盘"核心判断 / 今日验证"中**显著标注**（如 `⚠️ 数据冲突：东财 vs 雪球`），**不自动取信任一**；量能/成交额类校正仍以东方财富口径为准。此规则与"数据驱动、矛盾检测"铁律一致——数据打架本身就是要记录的现象。
+**冲突规则（硬性）**：东财与新浪数值不一致时，在复盘"核心判断 / 今日验证"中**显著标注**（如 `⚠️ 数据冲突：东财 vs 新浪`），**不自动取信任一**；量能/成交额类校正以东方财富口径为准。此规则与"数据驱动、矛盾检测"铁律一致——数据打架本身就是要记录的现象。
+
+> 注：之前规划的 `xueqiu_*` 雪球工具因 schannel 问题暂不可用；若日后 schannel 修复、雪球工具可用，本节改回"东财 + 雪球"双源，规则不变。
 
 ## 交易铁律（权威规则，优先于任何泛化判断）
 
@@ -108,18 +115,27 @@ date "+%Y-%m-%d %A"
   - 放量>2.8万亿？是→连板=确认；否→缩量→观望
 ```
 
-**数据获取方式**：
+**数据获取方式（本机 curl/HTTPS 不可用，统一走 node-fetch 行情工具）**：
 ```bash
-# 指数行情
-curl -s "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f4,f6,f12,f14&secids=1.000001,1.000300,0.399006,0.399001"
+# 行情工具路径（node 内置 OpenSSL，绕开 schannel 故障）
+MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
 
-# 个股行情
-stocks="1.688017,1.601689,0.300718,0.002050"  # 代码前缀：1=沪市,0=深市
-curl -s "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f4,f5,f6,f7,f8,f10,f12,f14&secids=$stocks"
+# 指数行情（上证/深成/创业板/沪深300/科创50）
+node "$MK" index
 
-# 板块资金流向
-curl -s "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=20&po=1&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields=f12,f14,f62,f184,f3"
+# 个股行情（代码前缀：1=沪市,0=深市）
+node "$MK" stocks "1.688017,1.601689,0.300718,0.002050"
+
+# 板块资金流向（前20）
+node "$MK" sector 20
+
+# 新浪实时（GBK自动解码，含bid/ask）
+node "$MK" sina "sh600519,sz000001"
+
+# K线（日K/周K/月K，period=101/102/103；分钟=5/15/30/60）
+node "$MK" kline "SH600519" 101 120
 ```
+> ⚠️ **为什么不用 curl**：本机 Windows schannel 出站 TLS 已损坏（`SEC_E_NO_CREDENTIALS`），任何 curl/Invoke-WebRequest 的 HTTPS 都失败；`dsh-market.mjs` 用 node.fetch（OpenSSL）正常。若日后 schannel 修复，仍可回退到 curl 写法。
 
 **API字段映射**：
 | 字段 | 含义 |
@@ -368,7 +384,20 @@ related: ["[[前日复盘1]]", "[[前日复盘2]]", "[[Mr.dang交易体系大纲
 
 ## 数据获取备忘
 
-### 东方财富API
+> ⚠️ **本机 HTTPS 现状**：Windows schannel 出站 TLS 损坏（`SEC_E_NO_CREDENTIALS`），**curl / Invoke-WebRequest 全部不可用**；取数统一用 `dsh-market.mjs`（node.fetch/OpenSSL，已验证可用）。
+
+### 行情工具（推荐，统一入口）
+
+```bash
+MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+node "$MK" index                        # 指数（上证/深成/创业板/沪深300/科创50）
+node "$MK" stocks "1.600000,0.000001"   # 个股行情（沪1. / 深0.）
+node "$MK" sector 20                    # 板块资金流向（前20，按主力净流入）
+node "$MK" sina "sh600519,sz000001"     # 新浪实时（GBK，含买卖盘）
+node "$MK" kline "SH600519" 101 120     # K线 101=日 102=周 103=月；5/15/30/60=分钟
+```
+
+### 东方财富API（工具底层，供排障/扩展参考）
 
 **指数行情**：
 ```
