@@ -79,9 +79,7 @@ User provides 1–5 Amazon competitor ASINs or full product URLs (all same marke
 
 ### Crawling Methodology
 
-**Preferred when dsh-shop-assistant is installed**: use `shop_page_snapshot` on each competitor's **public product URL** to fetch title + description + visible price clues. This is the first choice for public (buyer-visible) pages — apply the snapshot, then skip straight to keyword analysis. Do NOT ask the user to log into a seller console, and do not invent stock/promotions.
-
-**Primary (no shop plugin, or seller-only pages)**: Browser automation via playwright (Node.js):
+**Primary**: Browser automation via playwright (Node.js):
 
 ```bash
 # If playwright not installed:
