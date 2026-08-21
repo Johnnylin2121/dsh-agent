@@ -32,12 +32,18 @@ description: >
 | 最新财务数据 | 东方财富 | `emweb.securities.eastmoney.com` |
 | 舆情/新闻 | web search | `"{股票名}" site:eastmoney.com OR site:cls.cn OR site:10jqka.com.cn` |
 
-## 数据双源校验（已安装 dsh-xueqiu 插件后适用）
+## 数据双源校验（本机 HTTPS 修复前：东财 + 新浪工具交叉复核）
 
-- **行情/技术面**：主用东方财富（口径基准），用 `xueqiu_quote`（实时行情）+ `xueqiu_kline`（K线可视化，对话内直接出图）**交叉复核**。
-- **舆情/热议**：`xueqiu_kol`（个股热议大V）+ `xueqiu_news`（7×24 快讯）**补充** web search，覆盖东财/财联社之外的社区情绪面。
-- **代码/标的名定位**：`xueqiu_search`（英文名/拼音/代码互查），在 `{VAULT_PATH}/wiki/entities/` 找不到对应 entity 时优先用它确认代码。
-- **冲突规则（硬性）**：两源数值不一致 → 在扫描报告"基本面快照 / 技术面"中**显著标注**（如 `⚠️ 数据冲突：东财 vs 雪球`），**不自动取信任一**；估值/财务类以东方财富口径为准。
+> ⚠️ 本机 schannel 出站 TLS 损坏 → curl/xueqiu 工具不可用。统一用 `dsh-market.mjs`：
+> ```bash
+> MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+> node "$MK" index / stocks / sector / sina / kline / get "<url>"
+> ```
+
+- **行情/技术面**：主用东方财富（`stocks`，口径基准），用 `sina`（实时含买卖盘）**交叉复核**；K线走 `kline`（无图，纯数据）。
+- **舆情/热议**：`tool-web` search + `node "$MK" get "<网页>"` 抓取页面文本 **补充** web search，覆盖东财/财联社之外的社区情绪面。
+- **代码/标的名定位**：`node "$MK" get "https://searchapi.eastmoney.com/api/suggest/get?input={名}&type=14&token=D43BF722C8E33BDC906FB84D85E326E8"`，或让用户确认代码；`{VAULT_PATH}/wiki/entities/` 找不到对应 entity 时优先这样做。
+- **冲突规则（硬性）**：两源数值不一致 → 在扫描报告"基本面快照 / 技术面"中**显著标注**（如 `⚠️ 数据冲突：东财 vs 新浪`），**不自动取信任一**；估值/财务类以东方财富口径为准。
 - 写入扫描文件可用 `obsidian_write`（已装 dsh-obsidian 时），参考 obsidian-vault-sync 的工具优先级。
 
 ## 执行流程
@@ -52,14 +58,20 @@ description: >
 
 同时执行以下查询：
 
-1. **实时行情**：调用东方财富 API 获取最新价、PE、PB、市值
-2. **近期公告**：`curl` 抓取东方财富公告页 `data.eastmoney.com/notices/stock/{code}.html`，用 `grep`/`awk` 提取近30天公告标题和类型
-3. **机构评级**：`curl` 抓取东方财富研报页 `data.eastmoney.com/report/stock/{code}.html`，提取近期评级和目标价
-4. **资金流向**：调用东方财富 API 获取近5日主力净流入/出
-5. **财务数据**：`curl` 东方财富财务页，或调用东方财富 F10 API 获取近4季度关键指标
+> ⚠️ **本机 HTTPS 现状**：Windows schannel 出站 TLS 损坏（`SEC_E_NO_CREDENTIALS`），curl/Invoke-WebRequest 不可用；统一用 `dsh-market.mjs`（node.fetch/OpenSSL，已验证可用）。
+> ```bash
+> MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+> ```
+> 行情类 → `index/stocks/sector/sina/kline`；抓 HTML 页（公告/研报）→ `get "<url>"`。
+
+1. **实时行情**：`node "$MK" stocks "{code}"` 获取最新价、涨跌幅等；PE/PB/市值若需要，走东财 F10 数据或要求用户补充
+2. **近期公告**：`node "$MK" get "https://data.eastmoney.com/notices/stock/{code}.html"`，从返回文本提取近30天公告标题和类型
+3. **机构评级**：`node "$MK" get "https://data.eastmoney.com/report/stock/{code}.html"`，提取近期评级和目标价
+4. **资金流向**：`node "$MK" sector` 看板块资金，个股资金流向提示用户用交易终端/东财 app 复核（工具暂不覆盖个股资金明细）
+5. **财务数据**：`node "$MK" get "https://emweb.securities.eastmoney.com/PC_HSF10/NewFinanceAnalysis/Index?type=web&code={code}"` 抓近4季度关键指标
 6. **舆情新闻**：`tool-web` search 搜索近期相关新闻
 
-> 说明：DSH 无 `webfetch` 工具。东方财富公告/研报/财务页可 `curl` 抓取 HTML 后以文本方式解析；结构化数据优先走东方财富 API。
+> 说明：DSH 无 `webfetch` 工具；`get` 用 node.fetch 抓 HTML 转纯文本（含导航噪音，需截取正文片段）。结构化行情数据优先走 `index/stocks/sector`。
 
 ### Step 3: 整合分析
 
