@@ -32,6 +32,14 @@ description: >
 | 最新财务数据 | 东方财富 | `emweb.securities.eastmoney.com` |
 | 舆情/新闻 | web search | `"{股票名}" site:eastmoney.com OR site:cls.cn OR site:10jqka.com.cn` |
 
+## 数据双源校验（已安装 dsh-xueqiu 插件后适用）
+
+- **行情/技术面**：主用东方财富（口径基准），用 `xueqiu_quote`（实时行情）+ `xueqiu_kline`（K线可视化，对话内直接出图）**交叉复核**。
+- **舆情/热议**：`xueqiu_kol`（个股热议大V）+ `xueqiu_news`（7×24 快讯）**补充** web search，覆盖东财/财联社之外的社区情绪面。
+- **代码/标的名定位**：`xueqiu_search`（英文名/拼音/代码互查），在 `{VAULT_PATH}/wiki/entities/` 找不到对应 entity 时优先用它确认代码。
+- **冲突规则（硬性）**：两源数值不一致 → 在扫描报告"基本面快照 / 技术面"中**显著标注**（如 `⚠️ 数据冲突：东财 vs 雪球`），**不自动取信任一**；估值/财务类以东方财富口径为准。
+- 写入扫描文件可用 `obsidian_write`（已装 dsh-obsidian 时），参考 obsidian-vault-sync 的工具优先级。
+
 ## 执行流程
 
 ### Step 1: 确定标的
