@@ -7,6 +7,28 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 
 自动将文件同步到Obsidian知识库，完成文件复制、entity创建/更新、topic关联更新。
 
+## 工具优先级（已安装 dsh-obsidian 插件后适用）
+
+若检测到 `obsidian_*` 原生工具已注册（dsh-obsidian 插件），本 skill 的 Vault 读写**优先使用原生工具**，pwsh/文件工具降级为兜底：
+
+| 操作 | 优先工具 | 兜底 |
+|------|---------|------|
+| 全文检索/定位笔记 | `obsidian_search` | grep/glob |
+| 读取笔记（正文+frontmatter） | `obsidian_read` | read |
+| 新建/覆盖笔记（含自动建父目录） | `obsidian_write` | write |
+| 追加内容（如实体动态追加） | `obsidian_append` | edit 追加 |
+| 移动/重命名（自动同步 `[[链接]]`） | `obsidian_move` | fs 移动 |
+| 删除 | `obsidian_delete`（移入 `.trash/` 可逆） | 不可逆删除【禁用】 |
+| 断链检查（Step 6） | `obsidian_backlinks` + `obsidian_search` | 手动 grep `[[` |
+| 标签汇总 | `obsidian_tags` | 手动统计 |
+| frontmatter 读写 | `obsidian_frontmatter` / `obsidian_set_property` | 手工编辑 YAML |
+
+**规则**：
+- 路径参数一律相对 vault 根（如 `wiki/entities/证监会.md`），工具自会防越界。
+- 删除一律用 `obsidian_delete`（进 `.trash/`），绝不永久删除——符合"历史文件必须保留"规则。
+- `obsidian_*` 工具不可用时才走 pwsh/文件工具路径，并按本文件原有 {VAULT_PATH} 逻辑执行。
+- 无论用哪种工具，OneDrive 批量写入仍须分批，避免触发同步锁。
+
 ## 触发条件
 
 用户说以下任一短语时触发：
