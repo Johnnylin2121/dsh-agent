@@ -14,13 +14,15 @@
         "dsh-obsidian",
         "dsh-context-doctor",
         "@dickpy/dsh-imagegen",
-        "@liustack/modsearch"
+        "@liustack/modsearch",
+        "@vectorize-io/hindsight-coding-agents"
       ]
     }
   },
   "dependencies": {
     "@dickpy/dsh-imagegen": "^1.2.1",
     "@liustack/modsearch": "^5.9.0",
+    "@vectorize-io/hindsight-coding-agents": "^0.4.1",
     "dsh-context-doctor": "github:Zhenyu98/dsh-context-doctor#main",
     "dsh-find-plugin": "^0.3.7",
     "dsh-obsidian": "^0.2.2",
