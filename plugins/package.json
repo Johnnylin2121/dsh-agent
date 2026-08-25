@@ -1,0 +1,32 @@
+{
+  "name": "dsh-profile-web",
+  "private": true,
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-plugin-deepeye",
+        "dsh-peak-cost-mode",
+        "dsh-find-plugin",
+        "dshmarket",
+        "dsh-xueqiu",
+        "dsh-obsidian",
+        "dsh-context-doctor",
+        "@dickpy/dsh-imagegen",
+        "@liustack/modsearch"
+      ]
+    }
+  },
+  "dependencies": {
+    "@dickpy/dsh-imagegen": "^1.2.1",
+    "@liustack/modsearch": "^5.9.0",
+    "dsh-context-doctor": "github:Zhenyu98/dsh-context-doctor#main",
+    "dsh-find-plugin": "^0.3.7",
+    "dsh-obsidian": "^0.2.2",
+    "dsh-peak-cost-mode": "^0.3.2",
+    "dsh-plugin-deepeye": "^0.2.0",
+    "dsh-xueqiu": "^1.21.7",
+    "dshmarket": "^1.21.2"
+  }
+}
