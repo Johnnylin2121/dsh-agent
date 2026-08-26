@@ -4,7 +4,7 @@
 
 ## 包含什么
 
-### Skills（18 个）
+### Skills（17 个）
 
 | 类别 | 技能 | 用途 |
 |------|------|------|
@@ -14,24 +14,25 @@
 | | `trading-stock-scan` | 个股深度研究（公告/评级/资金/技术面） |
 | | `trading-value-investing` | 价值投资体系（Mr.Dang功法） |
 | **Amazon** | `amazon-ad-analysis` | 广告数据分析与经营分析 |
-| | `amazon-listing` | Listing优化（竞品分析→标题五点→后台搜索词） |
+| | `amazon-listing` | Listing优化（竞品关键词→标题≤75+商品亮点≤125→五点→后台搜索词，2026-07新政策） |
 | | `amazon-product-selection` | 选品分析（卖家精灵/ABA关键词趋势） |
 | **知识库** | `obsidian-vault-sync` | 文件同步到Obsidian vault |
 | | `obsidian-reconcile` | 检测vault中的矛盾信息 |
 | | `domain-memory` | 跨会话领域记忆管理 |
-| | `notion-api` | Notion REST API集成 |
-| **效率** | `caveman` | 极简输出模式（省token） |
+| **效率** | `caveman` | 极简输出模式（省token，与 dsh-peak-cost-mode 插件分工：插件管高峰自动、caveman 管用户主动） |
 | | `caveman-commit` | 极简commit信息生成 |
-| | `caveman-compress` | 压缩记忆文件省token |
+| | `caveman-compress` | 压缩记忆文件省token（DSH 无 Claude 环境时模型手工压缩） |
 | | `caveman-help` | caveman模式速查 |
 | | `caveman-review` | 极简代码审查 |
 | **通用** | `grill-me` | 苏格拉底式提问 |
+
+> 2026-08 已移除：`notion-api`（macOS/zsh+jq+curl 写法，Windows 全链不可用；Notion 写入已由 trading-daily-review 内置集成承担）。
 
 ### Plugins（备份）
 
 `plugins/` 目录备份 DSH web profile 的插件配置，含一键恢复脚本。
 
-当前插件：`dsh-context-doctor` · `@dickpy/dsh-imagegen` · `@liustack/modsearch` · `@vectorize-io/hindsight-coding-agents` 等。
+当前插件：`dsh-plugin-deepeye`（视觉）· `dsh-peak-cost-mode`（高峰省流）· `dsh-find-plugin` · `dshmarket` · `dsh-xueqiu` · `dsh-obsidian` · `dsh-context-doctor` · `@dickpy/dsh-imagegen`（生图）· `@liustack/modsearch`（网页/X读取）· `@vectorize-io/hindsight-coding-agents`（记忆）等。
 
 ### 共享工具
 
