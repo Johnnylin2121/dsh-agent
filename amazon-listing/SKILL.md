@@ -2,324 +2,195 @@
 name: amazon-listing
 description: >
   Amazon listing optimization workflow. Use when the user wants to analyze competitor
-  listings to extract core keywords, write optimized titles + bullet points with keyword
-  embedding, and generate backend search terms. Supports any Amazon marketplace.
-  Handles browser-based crawling, keyword frequency/position analysis, and listing
-  localization. Triggered when user mentions "亚马逊 listing", "竞品分析", "关键词",
-  "标题五点", "后台搜索词", or similar requests.
+  listings to extract core keywords, write an optimized title + Item Highlights +
+  bullet points with keyword embedding, and generate backend search terms.
+  Implements the 2026-07 title policy (title ≤75 chars, Item Highlights ≤125 chars,
+  combined ≤200). Supports any Amazon marketplace. Crawling via Jina Reader or
+  manual paste (no browser automation). Triggered by "亚马逊 listing", "竞品分析",
+  "关键词", "标题五点", "商品亮点", "后台搜索词", or similar.
 ---
 
-# Amazon Listing Optimization Workflow
+# Amazon Listing Optimization Workflow (2026-07 Policy)
 
 ## Overview
 
-Four-step workflow for Amazon listing creation from competitor analysis:
+Six-step workflow. Pause at the end of each step for user review before continuing.
 
-**Step 0** — Confirm target marketplace
-**Step 1** — Crawl competitor listings, extract top 10 core keywords
-**Step 2** — Write title + 5 bullet points with keyword embedding
-**Step 3** — Generate backend search terms
+**Step 0** — Confirm marketplace + title policy applicability
+**Step 1** — Collect competitor listings (Jina/manual), extract top 10 core keywords (via scripts/kw_analysis.py)
+**Step 2** — Write Title (≤75 chars) + Item Highlights (≤125 chars total)
+**Step 3** — Write 5 bullet points (≤500 chars each)
+**Step 4** — Generate backend search terms (≤249 bytes)
+**Step 5** — Post-launch ad feedback loop (1-2 weeks later)
 
-The user expects a **single unified `.md` file** on their desktop at the end of each step (progressively built), with 4 sections. Pause at the end of each step for user review before continuing.
+Output: single progressively-built `.md` file written to `{VAULT_PATH}/工作/亚马逊分析/<ASIN>-<product>-listing.md` (DSH: read the vault path from `~/.dsh/MEMORY.md` — never hardcode it).
 
-## Amazon Listing Rules (Hardcoded)
+## Amazon Listing Rules (Hardcoded, 2026-07-27 policy, all categories except media)
 
-These constraints are non-negotiable and must be applied at every step.
-
-### Character/Bytes Limits
+### Field Limits
 | Field | Limit | Notes |
 |-------|-------|-------|
-| Title | 200 characters | Some categories cap at 80 or 150; ask if unsure |
+| Title (商品名称) | 75 characters incl. spaces | Hard cap; some categories stricter (apparel 60). Highlights render ONLY when title < 75 — keep safety margin ≤ 73 |
+| Item Highlights (商品亮点) | 125 characters TOTAL for the whole field | Separate searchable field shown below title (search results + PDP). Up to ~10 attribute phrases inside the 125-char budget |
+| Title + Highlights combined | 200 characters | Hard combined cap |
 | Bullet point | 500 characters per bullet | 5 bullets total |
 | Backend search terms | 249 bytes | Bytes, NOT characters. Non-ASCII chars use 2+ bytes |
 
-### Prohibited Content (Title & Bullets)
+### Item Highlights Rules (NEW field — generated in Step 2)
+- Attribute/benefit-driven **phrases, NOT full sentences** (e.g. "Compatible con PS5, Xbox Series X", not "This cable works with PS5")
+- **Do NOT repeat information already in the Title** — never reuse the same terms; express residual claims as benefit phrasing
+- Reserved for: compatibility lists, use cases, materials, benefits that don't fit the 75-char title
+- Field is **searchable** — treat leftover non-title core keywords as highlight candidates
+- Priority: unverifiable claims (certifications, codecs) must be marked `[待确认]` unless user confirms the product actually supports them. Never copy competitor claims blindly.
+
+### Prohibited Content (Title & Bullets & Highlights)
 - ❌ Promotional claims: "best seller", "#1", "top rated", "100% quality"
 - ❌ Price mentions: "cheap", "affordable", "discount", "on sale"
 - ❌ Guarantee/refund language: "money back", "satisfaction guaranteed"
 - ❌ Subjective superlatives: "amazing", "incredible", "fantastic", "perfect"
 - ❌ Shipping/time claims: "free shipping", "fast delivery", "2-day arrival"
 - ❌ Contact info: email, phone, URLs, external site references
-- ❌ HTML tags, emojis, special symbols (®, ™, © are OK)
-- ❌ ALL CAPS words (except for standard abbreviations like USB, HDMI, LED)
+- ❌ New policy banned chars in title: `! $ ? _ { } ^ ¬ ¦` (em-dash/separators avoided too)
+- ❌ ALL CAPS words (except standard abbreviations: USB, HDMI, LED, HDR, eARC. 8K@60Hz-style resolutions keep standard caps)
+- ❌ Same word more than twice in a title (exceptions: prepositions, articles, conjunctions)
 
 ### Backend Search Terms Rules
-- ❌ Do NOT repeat any word already present in Title or Bullets
-- ❌ No brand names
-- ❌ No ASINs
-- ❌ No promotional/subjective terms
-- ❌ No commas, semicolons, or separators — use single spaces
-- ❌ Singular covers plural; don't include both
-- ❌ Case-insensitive; use lowercase
-- ✅ Include: synonyms, alternate names, common misspellings, alternate-language terms (e.g. Spanish for US market), complementary product terms
+- ❌ Do NOT repeat any word already present in Title, Highlights, or Bullets (exclusion set = all three)
+- ❌ No brand names / ASINs / promotional terms
+- ❌ No commas, semicolons, or separators — single spaces only
+- ❌ Singular covers plural; don't include both; case-insensitive lowercase
+- ✅ Include: synonyms, alternate names, misspellings, alternate-language terms, complementary product terms, long-tail phrases
 
 ### Title Capitalization by Marketplace
-- **Amazon.com (US)**: Capitalize first letter of each word (except articles/prepositions ≤ 3 letters)
-- **Amazon.co.uk (UK)**: Same as US
-- **Amazon.de (DE)**: German capitalization rules (nouns capitalized)
-- **Amazon.co.jp (JP)**: Japanese conventions; no English capitalization rules apply to JP text
-- **Amazon.fr / .es / .it**: Follow respective language conventions
+- **Amazon.com / .co.uk**: Capitalize first letter of each word (except articles/prepositions ≤ 3 letters)
+- **Amazon.de**: German rules (nouns capitalized)
+- **Amazon.co.jp**: Japanese conventions
+- **Amazon.fr / .es / .it / .com.mx**: language conventions (Spanish: only first word + proper nouns capitalized)
 
 ---
 
-## Step 0 — Confirm Target Marketplace
+## Step 0 — Confirm Marketplace & Policy
 
-Ask the user which marketplace (site) they intend to list on. If the user does not specify, default to the marketplace of the competitor links they provide.
-
-Examples: `Amazon.com` (US), `Amazon.co.uk` (UK), `Amazon.de` (Germany), `Amazon.co.jp` (Japan), `Amazon.ca` (Canada), `Amazon.fr` (France), `Amazon.es` (Spain), `Amazon.it` (Italy), `Amazon.com.au` (Australia)
-
-Once confirmed, proceed to Step 1.
+1. Ask which marketplace (default: marketplace of user's link — note: .com.mx etc.)
+2. Ask class of product to confirm the 75/125/200 caps apply (media categories are exempt; apparel = 60-char title). If unsure, ask user what Seller Central shows.
+3. Record the active caps in the output file header. Proceed to Step 1.
 
 ---
 
-## Step 1 — Extract Top 10 Core Keywords
+## Step 1 — Collect Competitor Data & Extract Top 10 Core Keywords
 
 ### Input
-User provides 1–5 Amazon competitor ASINs or full product URLs (all same marketplace as Step 0).
+1–5 competitor ASINs/URLs, same marketplace (≥3 recommended; warn if fewer, still proceed).
 
-### Crawling Methodology
+### Crawling — priority order (NO infinite retries; max 2 attempts per source)
+1. **Jina Reader** (DSH standard): `curl -s "https://r.jina.ai/https://www.<marketplace>/dp/<ASIN>"` — parse title/bullets from returned text.
+2. If Jina unreachable or CAPTCHA'd → try one direct `curl -A "<desktop UA>"` once; if it returns a robot-check page → **stop crawling and ask the user to paste** competitor title + bullets manually (match format: title line, then bullet lines).
 
-**Primary**: Browser automation via playwright (Node.js):
+Do NOT install/run playwright unless the host explicitly provides a browser automation setup.
+
+### Keyword Analysis — use the bundled script
+Script: `scripts/kw_analysis.py` (python3). Feed it the collected competitor text (each title followed by its bullets in a UTF-8 txt file; script auto-assigns alternating blocks: odd blocks = titles of 5 competitors, even = their bullets — OR simpler: pass two files: titles.txt (one per line), bullets.txt (one per line)).
 
 ```bash
-# If playwright not installed:
-npm init -y  (in a temp dir like {TEMP}/amz-scrape)
-npm install playwright
-npx playwright install chromium
-
-# Scrape each URL — extract the page text (title, bullets, description)
-# Use playwright to navigate, wait for content load, then extract:
-# - document.querySelector('#productTitle') -> title
-# - document.querySelectorAll('#feature-bullets .a-list-item') -> bullets
+# Recommended layout: one file, title line first, bullet lines after, blank line between competitors
+python3 scripts/kw_analysis.py -i competitors.txt
 ```
 
-The scraper should extract:
-1. **Title** — `#productTitle` text content
-2. **Bullet points** — ALL `#feature-bullets .a-list-item` or `#feature-bullets li` text
-3. **Description (optional, secondary)** — `#productDescription` or A+ content blocks
-
-**Fallback**: If browser automation fails (CAPTCHA, blocking), ask the user to manually copy-paste the title and bullet points for each competitor. Do NOT loop indefinitely retrying.
-
-### Keyword Analysis Methodology
-
-After obtaining all competitor texts, perform analysis:
-
-1. **Collect raw text**: All titles and bullets from all competitors.
-
-2. **Clean**:
-   - **EXCLUDE** brand words and store/seller names (user confirms which words are brand names if unsure; default to removing the first word(s) of each title that match across competitors as likely brand)
-   - **DO NOT exclude** stop words (e.g. "for", "with", "and", "in", "on", "the", "a", "an"). These are part of natural search phrases.
-   - Remove punctuation/symbols, normalize to lowercase for counting
-   - Normalize unicode (full-width to half-width etc.)
-
-3. **Word frequency analysis**:
-   - Count occurrences of every word (1-gram) across all titles AND across all bullets
-   - Count occurrences of every 2-word phrase (2-gram) across all titles (higher weight for 2-grams that appear in titles)
-   - Count occurrences of every 3-word phrase (3-gram) that appears at least once in a title
-
-4. **Title weight boost** (position-weighted scoring):
-   - Words appearing in a competitor **title** get a **3× weight multiplier** vs words only in bullets
-   - Within a title, words appearing earlier get a small additional boost (first 3 positions: 1.2×, positions 4–6: 1.1×)
-   - A word/phrase appearing in 3+ competitor titles → strong core keyword candidate
-
-5. **Merge same-root words**:
-   - Group morphological variants (e.g. "charger", "charging", "charge") under the highest-frequency form as the primary keyword
-   - List variants below the primary keyword in output as sub-items
-   - The primary form counts toward the top-10 slot; variants are informational
-
-6. **Score formula** (approximate):
-   ```
-   keyword_score = (count_in_titles × 3) + (count_in_bullets × 1) + (cross_competitor_bonus: +2 per additional competitor) + (title_position_bonus: +0.2 to +0.4)
-   ```
-
-7. **Select top 10**: Rank by score descending. These are the **core keywords**.
+Methodology (script implements):
+1. Clean: lowercase, strip punctuation, keep alphanumerics + `@` (so 8K@60Hz survives as one token), normalize unicode.
+2. 1-gram + 2-gram counting with **title ×3 weight, bullets ×1**; 3+ competitor titles containing a term → strong core candidate.
+3. Merge same-root variants (charger/charging → charger primary).
+4. Output ranked list → take top 10 as core keywords (mark those that define the category identity vs mere attributes).
 
 ### Output (Section 1 of the .md file)
+Markdown table: Rank / Keyword / Score / Title Count / Bullet Count / Cross-Competitor, plus Variants table, plus competitor links list.
 
-Write to `~/Desktop/<product-name>-listing.md` (ask user for product name for filename or use a generic placeholder).
-
-Format:
-
-```markdown
-# Amazon Listing — [Product Name] — [Marketplace]
-
-## 1. Core Keywords (Top 10)
-
-| Rank | Keyword | Score | Title Count | Bullet Count | Cross-Competitor |
-|------|---------|-------|-------------|--------------|------------------|
-| 1    | ...     | ...   | ...         | ...          | ...              |
-| 2    | ...     | ...   | ...         | ...          | ...              |
-| ...  | ...     | ...   | ...         | ...          | ...              |
-
-### Variants (same-root words merged under primary keyword)
-
-| Primary | Variants |
-|---------|----------|
-| charger | charging, charge |
-| ...     | ...      |
-
-### Competitor Links Analyzed
-- [link 1]
-- [link 2]
-- ...
-```
-
-After output, **STOP and ask the user to review/confirm** the keywords. Do NOT proceed to Step 2 until the user explicitly says to continue.
+**STOP — ask user to confirm keywords before Step 2.**
 
 ---
 
-## Step 2 — Write Title & Bullet Points
+## Step 2 — Title (≤75) + Item Highlights (≤125)
 
-### Input
-- **Confirmed core keywords** (from Step 1)
-- **Product main image** — user provides the image file. Use vision analysis to identify: product color, shape, material, key features, visible components, use scenario. Incorporate these visual findings into the listing copy to ensure accuracy.
-- **Product specs/parameters** (user provides): dimensions, weight, material, color variants, included accessories, compatibility info, capacity, etc. User may provide these as free text, a spec sheet, or bullet points.
+### Inputs
+- Confirmed top-10 keywords (Step 1)
+- Product image (vision analysis: color/material/features — optional, only if user provides)
+- Product specs / claimed features (free text). **All features written into the listing must trace to user-provided claims.** Competitor-only claims (HDCP, VRR, Dolby, braided nylon, certifications...) are `[待确认]` until user confirms.
 
-### Keyword Embedding Rules
+### Title writing (75-char budget)
+1. Front-load: #1 keyword (category core, e.g. "Cable HDMI 2.1") in first 3–5 words, then #2/#3 (attribute keywords), then specs.
+2. With 75 chars you CANNOT fit all top-10 — decide the split: what goes in title vs highlights vs bullets vs backend:
+   - Title: category identity + 1–2 strong attributes + one spec (usually length/规格)
+   - Highlights: compatibility list, use cases, benefits
+   - Bullets: detail playground
+   - Backend: leftovers (synonyms/long-tail)
+3. Count chars INCLUDING spaces; target ≤ 73 (safety margin so highlights always render). Never time the exact 75.
+4. Read naturally; no keyword stuffing; word repetition ≤2; all facts traceable to Step 2 inputs.
 
-1. **Weight-order priority embedding** (highest → lowest score):
-   - Top 3 core keywords **MUST** appear in the Title
-   - Keywords ranked 1–7 should appear in Title + Bullets
-   - Keywords ranked 8–10 should appear in Bullets (or Title if space permits)
-
-2. **Title embedding strategy**:
-   - Place the #1 core keyword as early as possible in the title (within first 3–5 words if natural)
-   - Front-load: brand (if provided by user) → #1 keyword → #2 keyword → key feature → #3 keyword → spec → variant info
-   - Never exceed 200 characters
-   - Read naturally to a native speaker — do not keyword-stuff
-
-3. **Bullet points embedding strategy**:
-   - 5 bullets, each ≤ 500 characters
-   - First bullet: primary use case / core value prop → embed keywords #3, #4
-   - Second bullet: key feature → embed keywords #4, #5
-   - Third bullet: material/build quality → embed keywords #5, #6, #7
-   - Fourth bullet: dimensions/compatibility → embed keywords #6, #7, #8
-   - Fifth bullet: package contents / warranty / bonus info → embed keywords #8, #9, #10
-   - Vary this template based on what product specs the user provides
-   - Each bullet should focus on a **single benefit or feature group** — don't cram multiple unrelated facts into one bullet
-
-4. **Natural language priority**: NEVER sacrifice readability for keyword density. If a keyword feels forced, drop it rather than creating unnatural copy.
-
-### Localization
-
-Adapt the listing copy to the target marketplace's native language:
-
-| Marketplace | Language | Tone |
-|-------------|----------|------|
-| .com | US English | Direct, benefit-driven, professional |
-| .co.uk | UK English | Similar to US but with UK spelling (colour, metre, aluminium, etc.) |
-| .de | German | Formal, technical, precise; ALL nouns capitalized per German rules |
-| .co.jp | Japanese | Polite, detailed, trust-building; use katakana for foreign words |
-| .ca | English (or French for QC) | Similar to US English |
-| .fr | French | Formal, elegant, feature-focused |
-| .es | Spanish | Warm, benefit-driven |
-| .it | Italian | Stylish, design-conscious |
-| .com.au | Australian English | Similar to UK English with AU spelling |
-
-If the marketplace uses a language you are not confident in, warn the user and suggest manual review by a native speaker.
+### Item Highlights writing (125-char total budget)
+1. Attribute/benefit phrases separated by `;` — no full sentences, no repeated title terms.
+2. Order by search value: compatibility > use case > benefit > certification.
+3. Count total chars ≤ 125; combined title+highlights ≤ 200.
+4. Unverified claims → `[待确认]` markers; ask user before finalizing.
 
 ### Output (Section 2 of the .md file)
-
-Append to the same `.md` file:
-
 ```markdown
-## 2. Title & Bullet Points
-
+## 2. Title & Item Highlights
 ### Title
-> [Full title text, character count: N]
-
-### Bullet Points
-- **Bullet 1**: [text] (chars: N) [Keywords embedded: ...]
-- **Bullet 2**: [text] (chars: N) [Keywords embedded: ...]
-- **Bullet 3**: [text] (chars: N) [Keywords embedded: ...]
-- **Bullet 4**: [text] (chars: N) [Keywords embedded: ...]
-- **Bullet 5**: [text] (chars: N) [Keywords embedded: ...]
-
-### Keyword Embedding Summary
-| Keyword (Rank) | In Title? | In Bullets? | Bullet # |
-|----------------|-----------|-------------|----------|
-| kw1 (1)        | ✅        | ✅          | 1,2      |
-| kw2 (2)        | ✅        | ✅          | 1,3      |
-| ...            | ...       | ...         | ...      |
+> [title] (chars: N/75)
+### Item Highlights
+> [field text] (chars: N/125)
+**Combined**: N/200  |  Keywords placed: title=[...], highlights=[...]
+### Title/Highlight keyword allocation table (keyword → where placed)
 ```
-
-After output, **STOP and ask the user to review/confirm** the title and bullets. Do NOT proceed to Step 3 until the user explicitly says to continue.
+**STOP — user confirms title+highlights before Step 3.**
 
 ---
 
-## Step 3 — Generate Backend Search Terms
+## Step 3 — Bullet Points (5 × ≤500 chars)
 
-### Input
-- Core keywords (Step 1)
-- Finalized title and bullets (Step 2) — specifically all words already used
+- Bullet 1: primary use case / core value (embed #3/#4 leftovers)
+- Bullet 2: key feature (codecs, refreshrates, certification — pending user confirmation if not claimed)
+- Bullet 3: material/build quality
+- Bullet 4: dimensions/compatibility details
+- Bullet 5: package contents / warranty / bonus
+- One benefit group per bullet; never duplicate title/highlight phrasing verbatim (paraphrase to extend coverage, not to stuff).
 
-### Methodology
+Append Section 3 to the .md file with per-bullet char counts + keyword placement table. **STOP — confirm before Step 4.**
 
-1. **Collect used words**: Extract all unique lowercase words from the finalized Title and Bullets. This is the "exclusion set" — these words CANNOT appear in backend search terms.
-
-2. **Generate candidates** from these sources:
-   - Core keywords NOT fully embedded in the listing
-   - Synonyms of core keywords (especially those visible in competitor listings)
-   - Common alternate names for the product/category
-   - Common misspellings (e.g., "bluetooth" → "blutooth", "charger" → "chargre")
-   - Complementary product terms (e.g., if product is a phone case, add "screen protector", "tempered glass" — related items buyers might search for together)
-   - Alternate-language terms relevant to the marketplace (e.g., for Amazon.com US, include common Spanish terms; for Amazon.ca, include French terms)
-   - Long-tail phrases not already embedded
-
-3. **Filter**:
-   - Remove all words/phrases that contain any word from the exclusion set
-   - Remove brand names
-   - Remove promotional/subjective terms
-   - Remove ASINs or identifiers
-
-4. **Assemble**:
-   - Combine remaining terms with single spaces (no commas, no separators)
-   - Prioritize: synonyms > misspellings > alternate-language > complementary > low-priority long-tail
-   - Truncate to ≤ 249 **bytes** (check byte length, not character length)
-   - Don't pad with filler — only meaningful terms
-
-### Output (Section 3 of the .md file)
-
-Append to the same `.md` file:
-
-```markdown
-## 3. Backend Search Terms
-
-> [flat space-separated search terms string]
-
-**Byte count**: N / 249
-
-### Terms Included
-| Term | Source | Reason |
-|------|--------|--------|
-| ...  | ...    | ...    |
-
-### Exclusion Set (words already in listing)
-[comma-separated list of excluded words]
-```
-
-### Final Summary
-
-At the end of the .md file, add a short summary block:
-
-```markdown
 ---
-**Marketplace**: [marketplace]
-**Product**: [product name]
-**Core Keywords**: [top 3 comma-separated]
-**Title chars**: N / 200
-**Bullet avg chars**: N / 500
-**Backend bytes**: N / 249
-**Generated**: [date]
+
+## Step 4 — Backend Search Terms (≤249 bytes)
+
+1. Exclusion set = all unique words in Title + Highlights + Bullets.
+2. Candidates: unplaced core keywords, synonyms, misspellings, alternate-language terms, complementary terms, long-tail phrases.
+3. Filter: drop anything containing an excluded word; drop brands/ASINs/promo.
+4. Assemble: single spaces, no separators; truncate ≤249 **bytes** (verify byte length — accent-marked Spanish chars count 2 bytes).
+5. Output flat string + byte count + terms-source table + exclusion set.
+
+Append Section 4. Summary block at file end: marketplace / product / title chars / highlights chars / bullets avg / backend bytes / date.
+
 ---
-```
+
+## Step 5 — Post-Launch Feedback Loop (广告联动, delayed 1–2 weeks)
+
+After the new listing goes live and accumulates ~1–2 weeks of ad data:
+1. Pull search-term report (see amazon-ad-analysis skill): check that the new core keywords (the ones placed in title/highlights) are gaining impressions and converting.
+2. High-efficiency uncovered terms → consider promoting into title/highlights on next iteration.
+3. If old long-tail keywords still spend without conversion → negative-keyword them or pause ad groups.
+4. Record results into the same .md file (Section 5) as a closed loop.
 
 ---
 
 ## Notes
+- <3 competitor links → warn about reliability, proceed.
+- No product image → skip visual analysis.
+- Communicate in the user's language.
+- .md is built progressively; never overwrite earlier sections.
+- Marketplace not in localization table → ask user for tone/language preferences.
 
-- If the user provides less than 3 competitor links, warn that keyword analysis may be less statistically reliable, but proceed.
-- If the user does NOT have a product image, proceed with specs only; skip visual analysis.
-- Always communicate in the same language as the user.
-- The .md file is progressively built — don't overwrite previous sections.
-- If a marketplace is not listed in the localization table above, ask the user for tone/language preferences.
+## 实战禁止清单(踩坑记录)
+- 75 恰好不触发亮点展示 → 永远留余量(≤73)。
+- 亮点是**单字段 125 总预算**,不是每条 125。
+- 亮点与标题**逐词去重**(连 eARC/HDR 这种词也算重复,用收益表达替代)。
+- 竞品高频词(HDCP/VRR/Dolby/认证)≠ 本产品支持 → 一律 `[待确认]`。
+- 标题超过旧上限时,后台搜索词是唯一还能装关键词的地方→ Step 4 优先承接未入位关键词。
