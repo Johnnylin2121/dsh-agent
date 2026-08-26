@@ -11,9 +11,8 @@ description: 检测并解决Obsidian vault中的矛盾信息——自动扫描�
 
 ### Step 1: 定位vault
 
-读取环境变量或配置确认vault路径：
-- 默认路径: `D:/OneDrive/ObsidianVault`
-- 如果用户指定了主题，缩小扫描范围到相关目录
+读取 `~/.dsh/MEMORY.md` 的「Obsidian Vault」行获取 `{VAULT_PATH}`（DSH 环境统一来源，不硬编码路径；此前的内置默认路径已废弃）。
+如果用户指定了主题，缩小扫描范围到相关目录
 
 ### Step 2: 并行扫描四类矛盾
 
