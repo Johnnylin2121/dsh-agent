@@ -17,23 +17,16 @@ Compress natural language files (CLAUDE.md, todos, preferences) into caveman-spe
 
 `/caveman-compress <filepath>` or when user asks to compress a memory file.
 
-## Process
+## Process（DSH 环境适配：无 claude CLI / ANTHROPIC_API_KEY）
 
-1. The compression scripts live in `scripts/` (adjacent to this SKILL.md). If the path is not immediately available, search for `scripts/__main__.py` next to this SKILL.md.
+本机（DSH/Windows）无 Claude 环境，`scripts/` CLI 不可执行（除非用户另行配置密钥）。默认走**模型手工压缩**：
 
-2. From the directory containing this SKILL.md, run:
+1. 备份：先复制原文件为 `<file>.original.md`
+2. 读全文，仅压缩散文部分，严格按下方 Compression Rules 执行（代码/URL/路径/命令/数字逐字保留）
+3. 覆盖写回原文件（不碰备份）
+4. 返回：新文件路径 + 备份路径 + 压缩前后字符数对比
 
-python3 -m scripts <absolute_filepath>
-
-3. The CLI will:
-- detect file type (no tokens)
-- call Claude to compress
-- validate output (no tokens)
-- if errors: cherry-pick fix with Claude (targeted fixes only, no recompression)
-- retry up to 2 times
-- if still failing after 2 retries: report error to user, leave original file untouched
-
-4. Return result to user
+可选 CLI 路径（仅当已配置 ANTHROPIC_API_KEY 或 claude CLI 时）：从本 SKILL 所在目录运行 `python3 -m scripts <absolute_filepath>`，脚本自动检测环境；失败则回退上述手工压缩。
 
 ## Compression Rules
 
