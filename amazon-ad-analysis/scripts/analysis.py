@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
 """
 亚马逊广告分析脚本
-基于广告报告数据，执行词根分析、否定词生成、关键词覆盖分析。
 
-用法:
-    # 词根分析
-    python analysis.py roots --input search_terms.xlsx --output roots.xlsx
+DEPRECATED（已废弃）：请使用 analysis_v2.py（v2 已覆盖全部功能，并增加配置外部化、
+列名自动检测、清洗 bug 修复、一键完整流程 run）。
+本文件保留仅为向后兼容，新分析一律走 v2。
 
-    # 否定词清单
-    python analysis.py negations --input search_terms.xlsx --output negations.xlsx
-
-    # 关键词覆盖分析
-    python analysis.py coverage --input search_terms.xlsx --listing listing.json --output coverage.xlsx
-
-    # 数据清洗
-    python analysis.py clean --input raw.xlsx --output cleaned.xlsx
-
-依赖:
-    pip install pandas openpyxl
+用法（v2 替代）:
+    python analysis_v2.py run --product product.xlsx --ad ad.xlsx --search search.xlsx --brand brand.xlsx
+    python analysis_v2.py roots --input search_terms.xlsx --category usb_hub
+    python analysis_v2.py negations --input search_terms.xlsx --category usb_hub
 """
 
 import argparse

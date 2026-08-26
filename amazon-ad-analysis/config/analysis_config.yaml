@@ -1,0 +1,385 @@
+# Amazon Ad Analysis 配置文件
+# 版本: 1.0
+# 更新日期: 2026-08-23
+
+# 阈值配置（唯一阈值来源，SKILL.md / glossary 只引用此处）
+thresholds:
+  acos:
+    good: 0.20          # 优秀：核心盈利
+    acceptable: 0.35    # 良好：稳定维持
+    needs_optimization: 0.50  # 需关注：优化
+    poor: 1.0           # 严重亏损：>100% 优先否定
+  # 派生说明：需优化档 = (acceptable, needs_optimization]；使用中统一取以下档位：
+  # <20% 优秀 | 20-35% 良好 | 35-50% 需关注 | 50-100% 需优化 | >100% 严重亏损
+  
+  cvr:
+    good: 0.15
+    average: 0.10
+  
+  cpc:
+    high: 5.0
+  
+  spend:
+    min_for_analysis: 5.0
+
+# 列名映射配置
+column_mapping:
+  product:
+    asin: ['ASIN', 'asin', 'Asin']
+    sales: ['销量', 'Sales', 'sales']
+    revenue: ['销售额', 'Revenue', 'revenue', 'Sales Amount']
+    orders: ['订单量', 'Orders', 'orders', 'Order Count']
+    sessions: ['Sessions-Total', 'Sessions', 'sessions']
+    cvr: ['CVR', 'cvr', 'Conversion Rate']
+    acos: ['ACOS', 'ACoS', 'acos', 'Advertising Cost of Sales']
+    tacos: ['TACOS', 'TACoS', 'tacos', 'Total ACOS']
+    roas: ['ROAS', 'Roas', 'roas', 'Return on Ad Spend']
+    ad_spend: ['广告花费', 'Ad Spend', 'ad_spend', 'Spend']
+    ad_sales: ['广告销售额', 'Ad Sales', 'ad_sales']
+    natural_orders: ['自然订单量', 'Natural Orders', 'natural_orders']
+    impressions: ['展示量', 'Impressions', 'impressions', '曝光量']
+    clicks: ['点击量', 'Clicks', 'clicks', '点击']
+    cpc: ['CPC', 'cpc', 'Cost Per Click']
+    ctr: ['CTR', 'ctr', 'Click Through Rate']
+    date: ['日期', 'Date', 'date', '报告日期']
+    brand: ['品牌', 'Brand', 'brand']
+    product_name: ['品名', 'Product Name', 'product_name', '标题']
+    price: ['售价', 'Price', 'price', '售价(总价)']
+  
+  ad:
+    campaign: ['广告活动', '广告活动名称', 'Campaign', 'Campaign Name']
+    ad_group: ['广告组', '广告组名称', 'Ad Group', 'Ad Group Name']
+    asin: ['广告ASIN', 'ASIN', 'asin']
+    impressions: ['展示量', 'Impressions', 'impressions', '曝光量']
+    clicks: ['点击量', 'Clicks', 'clicks', '点击']
+    ctr: ['点击率 (CTR)', 'CTR', 'ctr']
+    cpc: ['单次点击成本 (CPC)', 'CPC', 'cpc']
+    spend: ['花费', 'Spend', 'spend', '广告花费']
+    sales: ['7天总销售额', '7天总销售额($)', 'Sales', '销售额']
+    orders: ['7天总订单数(#)', '7天总订单数', 'Orders', '订单数']
+    acos: ['广告投入产出比 (ACOS) 总计', 'ACOS', 'ACoS', 'acos']
+    roas: ['总广告投资回报率 (ROAS)', 'ROAS', 'Roas', 'roas']
+    cvr: ['7天的转化率', '转化率', 'CVR', 'cvr']
+    date: ['日期', 'Date', 'date']
+  
+  search:
+    search_term: ['客户搜索词', '搜索词', 'Search Term', 'Customer Search Term']
+    impressions: ['展示量', 'Impressions', 'impressions', '曝光量']
+    clicks: ['点击量', 'Clicks', 'clicks', '点击']
+    ctr: ['点击率 (CTR)', 'CTR', 'ctr']
+    cpc: ['单次点击成本 (CPC)', 'CPC', 'cpc']
+    spend: ['花费', 'Spend', 'spend', '广告花费']
+    sales: ['7天总销售额', '7天总销售额($)', 'Sales', '销售额']
+    orders: ['7天总订单数(#)', '7天总订单数', 'Orders', '订单数']
+    acos: ['广告投入产出比 (ACOS) 总计', 'ACOS', 'ACoS', 'acos']
+    cvr: ['7天的转化率', '转化率', 'CVR', 'cvr']
+    start_date: ['开始日期', 'Start Date', 'start_date']
+    end_date: ['结束日期', 'End Date', 'end_date']
+    date: ['日期', 'Date', 'date']
+  
+  brand:
+    asin: ['已购买的asin', 'ASIN', 'asin']
+    campaign: ['广告活动', 'Campaign', 'campaign']
+    ad_group: ['广告组', 'Ad Group', 'ad_group']
+    traffic_type: ['引流类型', 'Traffic Type', 'traffic_type']
+    date: ['日期', 'Date', 'date']
+    sales_14d: ['14天总销售额', '14天总销售额($)', '14d Sales']
+    orders_14d: ['14天总订单数', '14d Orders']
+    units_14d: ['14天总件数', '14d Units']
+    new_customer_sales: ['14天新客户订单销售额', '14d New Customer Sales']
+    new_customer_orders: ['14天新客户订单', '14d New Customer Orders']
+    new_customer_units: ['14天新客户订单件数', '14d New Customer Units']
+
+# 品类配置
+categories:
+  usb_hub:
+    compound_roots:
+      - 'usb hub'
+      - 'usb 3.0 hub'
+      - 'usb 2.0 hub'
+      - 'powered usb hub'
+      - 'usb hub powered'
+      - 'usb splitter'
+      - 'usb port'
+      - 'usb extender'
+      - 'usb charger'
+      - 'usb adapter'
+      - 'usb cable'
+      - 'usb drive'
+      - 'usb c hub'
+      - 'usb c adapter'
+      - 'usb c cable'
+      - '4 port'
+      - '5 port'
+      - '7 port'
+      - '10 port'
+      - '4-port'
+      - '5-port'
+      - 'aluminum'
+      - 'portable'
+      - 'individual switch'
+    category_name: 'USB Hub'
+  
+  electronics:
+    compound_roots:
+      - 'wireless charger'
+      - 'fast charger'
+      - 'wall charger'
+      - 'car charger'
+      - 'phone case'
+      - 'screen protector'
+      - 'earbuds'
+      - 'headphones'
+      - 'bluetooth speaker'
+      - 'power bank'
+      - 'portable charger'
+      - 'lightning cable'
+      - 'usb c cable'
+      - 'hdmi cable'
+      - 'phone holder'
+      - 'car mount'
+      - 'wireless earbuds'
+    category_name: 'Electronics'
+  
+  home:
+    compound_roots:
+      - 'air purifier'
+      - 'humidifier'
+      - 'dehumidifier'
+      - 'space heater'
+      - 'electric kettle'
+      - 'coffee maker'
+      - 'blender'
+      - 'food processor'
+      - 'vacuum cleaner'
+      - 'robot vacuum'
+      - 'steam mop'
+      - 'bed sheets'
+      - 'pillow case'
+      - 'comforter'
+      - 'mattress pad'
+      - 'curtains'
+      - 'blackout curtains'
+      - 'shower curtain'
+    category_name: 'Home & Kitchen'
+  
+  custom:
+    compound_roots: []
+    category_name: 'Custom'
+
+# 停用词配置
+stop_words:
+  english:
+    - 'a'
+    - 'an'
+    - 'the'
+    - 'for'
+    - 'with'
+    - 'and'
+    - 'or'
+    - 'to'
+    - 'in'
+    - 'on'
+    - 'at'
+    - 'by'
+    - 'of'
+    - 'is'
+    - 'it'
+    - 'its'
+    - 'my'
+    - 'your'
+    - 'his'
+    - 'her'
+    - 'our'
+    - 'their'
+    - 'this'
+    - 'that'
+    - 'am'
+    - 'are'
+    - 'was'
+    - 'were'
+    - 'be'
+    - 'been'
+    - 'being'
+    - 'have'
+    - 'has'
+    - 'had'
+    - 'do'
+    - 'does'
+    - 'did'
+    - 'will'
+    - 'would'
+    - 'could'
+    - 'should'
+    - 'may'
+    - 'might'
+    - 'shall'
+    - 'can'
+    - 'need'
+    - 'dare'
+    - 'ought'
+    - 'used'
+    - 'from'
+    - 'as'
+    - 'into'
+    - 'through'
+    - 'during'
+    - 'before'
+    - 'after'
+    - 'above'
+    - 'below'
+    - 'between'
+    - 'out'
+    - 'off'
+    - 'over'
+    - 'under'
+    - 'again'
+    - 'further'
+    - 'then'
+    - 'once'
+    - 'here'
+    - 'there'
+    - 'when'
+    - 'where'
+    - 'why'
+    - 'how'
+    - 'all'
+    - 'both'
+    - 'each'
+    - 'few'
+    - 'more'
+    - 'most'
+    - 'other'
+    - 'some'
+    - 'such'
+    - 'no'
+    - 'nor'
+    - 'not'
+    - 'only'
+    - 'own'
+    - 'same'
+    - 'so'
+    - 'than'
+    - 'too'
+    - 'very'
+    - 'just'
+    - 'because'
+    - 'but'
+    - 'if'
+    - 'while'
+    - 'about'
+    - 'against'
+    - 'up'
+    - 'down'
+    - 'you'
+    - 'he'
+    - 'she'
+    - 'we'
+    - 'they'
+    - 'me'
+    - 'him'
+    - 'her'
+    - 'us'
+    - 'them'
+    - 'what'
+    - 'which'
+    - 'who'
+    - 'whom'
+    - 'these'
+    - 'those'
+    - 'i'
+
+# 输出配置
+output:
+  directory: './output'
+  # Obsidian Vault 输出根目录（Phase 0 需求澄清时确认/覆盖）
+  # 默认结构见 SKILL.md 归档章节；本店实测使用: D:\OneDrive\ObsidianVault\工作\亚马逊工作管理\亚马逊分析
+  vault_root: '{VAULT_PATH}/工作/亚马逊分析'
+  attachment_dir: '{VAULT_PATH}/附件'
+  save_checkpoints: true
+  report_format:
+    - 'markdown'
+    - 'excel'
+  
+  # Markdown报告配置
+  markdown:
+    include_tables: true
+    include_charts: false
+    max_rows_in_table: 50
+  
+  # Excel报告配置
+  excel:
+    include_summary_sheet: true
+    include_data_sheets: true
+    max_rows_per_sheet: 10000
+
+# 分析配置
+analysis:
+  # 周趋势分析
+  weekly_trend:
+    enabled: true
+    weeks: 4  # 分析最近4周
+  
+  # ASIN深度分析
+  asin_deep_dive:
+    enabled: true
+    max_asins: 10  # 最多分析的ASIN数量
+    priority_rules:
+      - 'high_sales_high_acos'  # 高销量高ACOS
+      - 'low_sales_low_acos'    # 低销量低ACOS
+      - 'user_specified'        # 用户指定
+  
+  # 关键词分析
+  keyword_analysis:
+    enabled: true
+    min_spend: 5.0  # 最低花费阈值
+    min_orders: 1   # 最低订单数阈值
+    top_n: 50       # 展示前N个词根
+  
+  # 品牌广告分析
+  brand_analysis:
+    enabled: true
+    include_new_customer_analysis: true
+
+# Listing 抓取档位（Phase 4A 使用，按序降级）
+listing_scrape:
+  modes: ['jina', 'manual', 'skip']
+  jina_url_template: 'https://r.jina.ai/http://amazon.com/dp/{ASIN}'
+
+# 执行环境
+environment:
+  # Windows 下 pandas 所在解释器（`python` 可能指向无 pandas 的旧版本）
+  python_windows: 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe'
+  force_utf8: true   # 控制台输出 UTF-8，避免中文列名乱码/emoji 崩溃
+
+# 数据验证配置
+validation:
+  required_columns:
+    product:
+      - 'asin'
+      - 'sales'
+      - 'revenue'
+    ad:
+      - 'campaign'
+      - 'impressions'
+      - 'clicks'
+      - 'spend'
+    search:
+      - 'search_term'
+      - 'impressions'
+      - 'clicks'
+      - 'spend'
+  
+  min_rows: 10
+  max_null_percentage: 0.5
+  
+  anomaly_detection:
+    acos_max: 10.0  # 1000%
+    cpc_max: 50.0
+    spend_min: 0.01
+
+# 日志配置
+logging:
+  level: 'INFO'  # DEBUG, INFO, WARNING, ERROR
+  file: './output/analysis.log'
+  console: true
