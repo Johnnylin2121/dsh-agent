@@ -1,5 +1,5 @@
 ﻿---
-name: briefing-fetch
+name: trading-briefing-fetch
 description: 财经早报数据自动抓取（akshare）。商品价格表/美股指数/财联社系快讯 → 生成标准格式 markdown 草稿到 交易体系/早报草稿/（与正式早读隔离）。用户说"跑早报"、"抓今天数据"、"生成早报草稿"时使用。
 ---
 
