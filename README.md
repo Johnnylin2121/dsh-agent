@@ -1,10 +1,10 @@
-# dsh-agent
+﻿# dsh-agent
 
 个人 DSH（DeepSeek Harness）技能与插件配置仓库。跨会话持久化，换机器一键恢复。
 
 ## 包含什么
 
-### Skills（17 个）
+### Skills（18 个）
 
 | 类别 | 技能 | 用途 |
 |------|------|------|
