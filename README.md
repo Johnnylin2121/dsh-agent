@@ -13,7 +13,7 @@
 | | `trading-policy-impact` | 政策/事件影响链路分析 |
 | | `trading-stock-scan` | 个股深度研究（公告/评级/资金/技术面） |
 | | `trading-value-investing` | 价值投资体系（Mr.Dang功法） |
-| | riefing-fetch | 财经早报数据抓取（akshare商品/美股/快讯→标准md草稿，六类关注方向规则初筛+LLM终筛） |
+| | `briefing-fetch` | 财经早报数据抓取（akshare商品/美股/快讯→标准md草稿，六类关注方向规则初筛+LLM终筛） |
 | **Amazon** | `amazon-ad-analysis` | 广告数据分析与经营分析 |
 | | `amazon-listing` | Listing优化（竞品关键词→标题≤75+商品亮点≤125→五点→后台搜索词，2026-07新政策） |
 | | `amazon-product-selection` | 选品分析（卖家精灵/ABA关键词趋势） |
