@@ -18,7 +18,7 @@
 | | `amazon-product-selection` | 选品分析（卖家精灵/ABA关键词趋势） |
 | **知识库** | `obsidian-vault-sync` | 文件同步到Obsidian vault |
 | | `obsidian-reconcile` | 检测vault中的矛盾信息 |
-| | briefing-fetch | 财经早报数据抓取（akshare商品/美股/快讯→标准md草稿，六类关注方向规则初筛+LLM终筛） |
+| | `briefing-fetch` | 财经早报数据抓取（akshare商品/美股/快讯→标准md草稿，六类关注方向规则初筛+LLM终筛） |
 | | `domain-memory` | 跨会话领域记忆管理 |
 | **效率** | `caveman` | 极简输出模式（省token，与 dsh-peak-cost-mode 插件分工：插件管高峰自动、caveman 管用户主动） |
 | | `caveman-commit` | 极简commit信息生成 |
