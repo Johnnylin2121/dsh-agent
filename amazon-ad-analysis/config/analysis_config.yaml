@@ -293,8 +293,8 @@ stop_words:
 output:
   directory: './output'
   # Obsidian Vault 输出根目录（Phase 0 需求澄清时确认/覆盖）
-  # 默认结构见 SKILL.md 归档章节；本店实测使用: D:\OneDrive\ObsidianVault\工作\亚马逊工作管理\亚马逊分析
-  vault_root: '{VAULT_PATH}/工作/亚马逊分析'
+  # 默认结构见 SKILL.md 归档章节；本店实测使用: D:\OneDrive\ObsidianVault\工作\亚马逊工作管理\亚马逊分析（2026-08-28 用户确认默认值）
+  vault_root: '{VAULT_PATH}/工作/亚马逊工作管理/亚马逊分析'
   attachment_dir: '{VAULT_PATH}/附件'
   save_checkpoints: true
   report_format:
