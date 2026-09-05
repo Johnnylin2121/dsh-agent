@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+# 补丁目录内的依赖不进备份（可重装；源目录为 pnpm 循环 junction，整树复制会死循环）
+plugins/dsh-patches/**/node_modules/
