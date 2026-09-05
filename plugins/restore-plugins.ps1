@@ -31,8 +31,8 @@ foreach ($p in $plugins) {
     $spec = $p.Value
     Write-Host "安装 $name ..." -ForegroundColor Green
     
-    # github: 前缀的用原始 spec，否则用 npm 格式
-    if ($spec -match "^github:") {
+    # github: / link: / file: 前缀的用原始 spec，否则用 npm 格式
+    if ($spec -match "^(github:|link:|file:)") {
         dsh plugin --profile web add $spec
     } else {
         dsh plugin --profile web add "$name@$spec"
