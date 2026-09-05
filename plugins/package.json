@@ -12,23 +12,29 @@
         "dshmarket",
         "dsh-xueqiu",
         "dsh-obsidian",
-        "dsh-context-doctor",
         "@dickpy/dsh-imagegen",
         "@liustack/modsearch",
-        "@vectorize-io/hindsight-coding-agents"
+        "@vectorize-io/hindsight-coding-agents",
+        "dsh-context-doctor",
+        "dsh-whale-widget",
+        "@linxin666/dsh-client-ui-task-board",
+        "dsh-rss-digest"
       ]
     }
   },
   "dependencies": {
-    "@dickpy/dsh-imagegen": "^1.2.1",
-    "@liustack/modsearch": "^5.9.0",
-    "@vectorize-io/hindsight-coding-agents": "^0.4.1",
-    "dsh-context-doctor": "github:Zhenyu98/dsh-context-doctor#main",
+    "@dickpy/dsh-imagegen": "^1.5.3",
+    "@linxin666/dsh-client-ui-task-board": "^0.3.14",
+    "@liustack/modsearch": "^5.10.1",
+    "@vectorize-io/hindsight-coding-agents": "^0.5.1",
+    "dsh-context-doctor": "link:E:/3.deepseek-harness/.dsh-patches/context-doctor-0.6.1",
     "dsh-find-plugin": "^0.3.7",
-    "dsh-obsidian": "^0.2.2",
-    "dsh-peak-cost-mode": "^0.3.2",
+    "dsh-obsidian": "^0.2.3",
+    "dsh-peak-cost-mode": "^0.4.0",
     "dsh-plugin-deepeye": "^0.2.0",
-    "dsh-xueqiu": "^1.21.7",
-    "dshmarket": "^1.21.2"
+    "dsh-rss-digest": "0.1.0",
+    "dsh-whale-widget": "^0.2.10",
+    "dsh-xueqiu": "^1.22.13",
+    "dshmarket": "^1.41.0"
   }
 }

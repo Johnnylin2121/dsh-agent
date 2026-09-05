@@ -15,6 +15,15 @@ pwsh plugins/restore-plugins.ps1
 
 恢复后重启 `dsh web` 即可。
 
+## 注意：link: 本地补丁依赖
+
+`dsh-context-doctor` 当前使用 `link:` 指向本机补丁目录
+`E:\3.deepseek-harness\.dsh-patches\context-doctor-0.6.1`（本地 patched 版）。
+在新机器上恢复时该目录不存在，脚本会跳过该插件；二选一：
+
+1. 先把补丁目录拷到新机同路径，再跑恢复脚本；
+2. 或临时改回 git 源：`dsh plugin --profile web add github:Zhenyu98/dsh-context-doctor#main`（注意会丢本地补丁改动）。
+
 ## 更新备份
 
 每次增删插件后，运行：
