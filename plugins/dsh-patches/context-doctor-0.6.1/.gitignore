@@ -1,0 +1,9 @@
+# Dependencies (symlinked to a local DSH checkout; never committed)
+node_modules/
+
+# Local acceptance overlay
+acceptance.patch.yml
+
+# Editor / OS noise
+.DS_Store
+*.log

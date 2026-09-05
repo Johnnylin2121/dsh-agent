@@ -1,0 +1,78 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "outDir": "lib/types",
+    "rootDir": "src",
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "noEmitOnError": true,
+    "paths": {
+      "@deepseek-ai/dsh-util-values": [
+        "C:/Users/johnn/deepseek-harness/packages/util/values/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-tools": [
+        "C:/Users/johnn/deepseek-harness/packages/core/tools/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-skill": [
+        "C:/Users/johnn/deepseek-harness/packages/skill/skill/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-fs": [
+        "C:/Users/johnn/deepseek-harness/packages/fs/fs/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-host-webserver": [
+        "C:/Users/johnn/deepseek-harness/packages/host/webserver/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-store": [
+        "C:/Users/johnn/deepseek-harness/packages/client/store/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-modules": [
+        "C:/Users/johnn/deepseek-harness/packages/client/modules/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-renderer": [
+        "C:/Users/johnn/deepseek-harness/packages/client/ui-renderer/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-renderer/client": [
+        "C:/Users/johnn/deepseek-harness/packages/client/ui-renderer/lib/types/client/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-slots": [
+        "C:/Users/johnn/deepseek-harness/packages/client/ui-slots/lib/types/index.d.ts"
+      ],
+      "@deepseek-ai/dsh-client-ui-conversation/client": [
+        "C:/Users/johnn/deepseek-harness/packages/client/ui-conversation/lib/types/client/index.d.ts"
+      ],
+      "react": [
+        "C:/Users/johnn/deepseek-harness/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react/index.d.ts"
+      ],
+      "react/jsx-runtime": [
+        "C:/Users/johnn/deepseek-harness/node_modules/.pnpm/@types+react@18.3.31/node_modules/@types/react/jsx-runtime.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "lib",
+    "node_modules",
+    "tests"
+  ]
+}
