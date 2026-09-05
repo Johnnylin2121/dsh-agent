@@ -6,7 +6,7 @@ description: >
   可在其他 skill 的入口/出口处自动调用，实现"每次会话自动加载相关记忆"。
   触发词：记一下、查一下记忆、上次的教训、这有什么前例、记忆检索、写入记忆。
 dependencies:
-  - obsidian-vault (路径: {VAULT_PATH})
+  - "obsidian-vault (路径: {VAULT_PATH})"
 ---
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # Domain Memory — 领域记忆管理
