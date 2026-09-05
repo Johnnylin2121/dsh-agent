@@ -1,4 +1,4 @@
-﻿# dsh-agent
+# dsh-agent
 
 个人 DSH（DeepSeek Harness）技能与插件配置仓库。跨会话持久化，换机器一键恢复。
 
@@ -31,9 +31,9 @@
 
 ### Plugins（备份）
 
-`plugins/` 目录备份 DSH web profile 的插件配置，含一键恢复脚本。
+`plugins/` 目录备份 DSH web profile 的插件配置（`package.json` + 一键恢复脚本 `restore-plugins.ps1`）。`plugins/dsh-patches/` 额外备份两个**本地补丁**（context-doctor 原生 fetch 版 + dsh-xueqiu TLS 规避/浮窗隐藏补丁），来历与恢复方法见其 README；备份根因是本机 schannel TLS 损坏（详见 `plugins/dsh-patches/README.md`）。
 
-当前插件：`dsh-plugin-deepeye`（视觉）· `dsh-peak-cost-mode`（高峰省流）· `dsh-find-plugin` · `dshmarket` · `dsh-xueqiu` · `dsh-obsidian` · `dsh-context-doctor` · `@dickpy/dsh-imagegen`（生图）· `@liustack/modsearch`（网页/X读取）· `@vectorize-io/hindsight-coding-agents`（记忆）等。
+当前插件：`dsh-plugin-deepeye`（视觉）· `dsh-peak-cost-mode`（高峰省流）· `dsh-find-plugin` · `dshmarket` · `dsh-xueqiu` · `dsh-obsidian` · `dsh-context-doctor`（本地补丁 link:）· `@dickpy/dsh-imagegen`（生图）· `@liustack/modsearch`（网页/X读取）· `@vectorize-io/hindsight-coding-agents`（记忆）· `@linxin666/dsh-client-ui-task-board`（cron 定时任务看板）· `dsh-rss-digest`（RSS→每日简报，早报数据源之一）· `dsh-whale-widget`（余额挂件）。
 
 ### 共享工具
 
