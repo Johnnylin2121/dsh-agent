@@ -23,7 +23,7 @@ Six-step workflow. Pause at the end of each step for user review before continui
 **Step 4** — Generate backend search terms (≤249 bytes)
 **Step 5** — Post-launch ad feedback loop (1-2 weeks later)
 
-Output: single progressively-built `.md` file written to `{VAULT_PATH}/工作/亚马逊工作管理/亚马逊分析/<ASIN>-<product>-listing.md` (DSH: read the vault path from `~/.dsh/MEMORY.md` — never hardcode it). **All Amazon-related outputs must live under `{VAULT_PATH}/工作/亚马逊工作管理/`** — never create top-level `{VAULT_PATH}/工作/亚马逊分析/` or similar new folders.
+Output: single progressively-built `.md` file written to `{VAULT_PATH}/工作/亚马逊工作管理/链接listing/<ASIN>-<product>-listing.md` (DSH: read the vault path from `~/.dsh/MEMORY.md` — never hardcode it). **All Amazon-related outputs must live under `{VAULT_PATH}/工作/亚马逊工作管理/`** — never create top-level `{VAULT_PATH}/工作/亚马逊分析/` or similar new folders.
 
 ## Amazon Listing Rules (Hardcoded, 2026-07-27 policy, all categories except media)
 
