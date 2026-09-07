@@ -36,7 +36,7 @@
 ## dsh-rss-digest/ — dsh-rss-digest 就地补丁
 
 - **来历**：对已安装 `dsh-rss-digest@0.1.0` 的就地补丁。根因与 TLS 无关：**DSH 宿主进程内 fetch Response 的 `.body` 流 getter 为 null**（流式读取不可用；同因即 dsh-xueqiu v1 改 `res.text()` 的原因）。插件 `lib/fetcher.js` 的 `readBody()` 对 `body===null` 返回空串 → 解析报 `document contains no root element`，`rss_fetch` 必失败（2026-09-13 实测两源皆中）。
-- **改动**：`fetchOne` 中 `body` 为 null 时退回 `await response.text()`（与 xueqiu 同款读法，宿主内可行）。
+- **改动**：`fetchOne` 一律用 `await response.text()` 读响应体（v1 只对 `body===null` 兜底；实测部分响应 body 非 null 但流读出为空，仍报 no root element。v2 全量 text()，与 xueqiu 同款宿主内可靠读法）。
 - **文件对应**：`fetcher.js.patched` → `~/.dsh/profiles/web/node_modules/dsh-rss-digest/lib/fetcher.js`
 - **哨兵**：`本机 patch 2026-09-13`，防重复铺。
 - **铺回**：`node patch-rss-digest.mjs`（幂等；`--check` 仅检查；版本 ≠0.1.0 拒绝，确认后 `--force`）。
