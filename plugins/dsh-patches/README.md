@@ -33,6 +33,15 @@
 - **铺回**：`node patch-xueqiu.mjs`（幂等；`--check` 仅检查状态；插件版本与 `package.json.bak` 不一致时拒绝执行，确认后 `--force`）。
 - **状态**：备份版本 1.22.13 = 当前安装版本，补丁现行有效。
 
+## dsh-rss-digest/ — dsh-rss-digest 就地补丁
+
+- **来历**：对已安装 `dsh-rss-digest@0.1.0` 的就地补丁。根因与 TLS 无关：**DSH 宿主进程内 fetch Response 的 `.body` 流 getter 为 null**（流式读取不可用；同因即 dsh-xueqiu v1 改 `res.text()` 的原因）。插件 `lib/fetcher.js` 的 `readBody()` 对 `body===null` 返回空串 → 解析报 `document contains no root element`，`rss_fetch` 必失败（2026-09-13 实测两源皆中）。
+- **改动**：`fetchOne` 中 `body` 为 null 时退回 `await response.text()`（与 xueqiu 同款读法，宿主内可行）。
+- **文件对应**：`fetcher.js.patched` → `~/.dsh/profiles/web/node_modules/dsh-rss-digest/lib/fetcher.js`
+- **哨兵**：`本机 patch 2026-09-13`，防重复铺。
+- **铺回**：`node patch-rss-digest.mjs`（幂等；`--check` 仅检查；版本 ≠0.1.0 拒绝，确认后 `--force`）。
+- **生效**：需重启 `dsh web`（宿主启动时加载模块，改文件不热生效）。
+
 ## 维护约定
 
 - `dsh-xueqiu` 插件升级后需重新核对补丁：版本号变化直接 `--force` 铺回；上游代码大改则需重新做补丁（对照本目录 `.patched` 文件与新版源码重做差异）。
