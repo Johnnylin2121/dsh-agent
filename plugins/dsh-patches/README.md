@@ -47,3 +47,10 @@
 - `dsh-xueqiu` 插件升级后需重新核对补丁：版本号变化直接 `--force` 铺回；上游代码大改则需重新做补丁（对照本目录 `.patched` 文件与新版源码重做差异）。
 - 若上游以原生方式修复 TLS 请求路径（或本机 schannel 恢复正常），可退役对应补丁，回退 npm/github 源安装。
 - 重新备份本目录时：用 `robocopy /E /XJ /XD node_modules`，禁止 `Copy-Item -Recurse` 整树复制。
+
+## dsh-plugin-deepeye/ — 视觉请求会话头补丁
+
+- **来历**：opencode Console Go 网关要求请求带 `x-opencode-session`（缺失间歇 400 MissingSessionID，DeepSeek Harness 亦在其"已知问题客户端"名单，upstream discussion #5495）。DeepEye 走 opencode-go 后端时（baseUrl 含 opencode.ai）自行发请求、不经 DSH provider headers → 需就地补丁。
+- **改动**：`lib/index.mjs` describe() 请求头：baseUrl 含 opencode.ai 时附加 `x-opencode-session: dsh-deepeye-<每进程 randomUUID>`。
+- **文件对应**：`index.mjs.patched` → `~/.dsh/profiles/web/node_modules/dsh-plugin-deepeye/lib/index.mjs`
+- **重铺**：插件升级/重装后 `Copy-Item` 覆盖（无哨兵脚本，文件小）；配套 settings.yaml opencode-go provider `headers.x-opencode-session` 固定 UUID 修 DSH 自身请求。
