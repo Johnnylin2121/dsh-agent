@@ -35,8 +35,8 @@ description: >
 ## 数据多源校验（东财口径基准 + 新浪/雪球交叉）
 
 > ⚠️ **本机 Windows schannel 出站 TLS 曾损坏**，curl/Invoke-WebRequest 不可用；统一用 `dsh-market.mjs`（node.fetch/OpenSSL）；**DSH 工具面的 `xueqiu_*` 工具可用**（quote/kline/search），纳入交叉源：
-> ```bash
-> MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+> ```powershell
+> $MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
 > node "$MK" index / stocks / sector / sina / kline / get "<url>"
 > ```
 
@@ -65,8 +65,8 @@ description: >
 ### Step 2: 并行获取数据
 
 > ⚠️ **本机 HTTPS 现状**：Windows schannel 出站 TLS 损坏（`SEC_E_NO_CREDENTIALS`），curl/Invoke-WebRequest 不可用；统一用 `dsh-market.mjs`（node.fetch/OpenSSL，已验证可用）。
-> ```bash
-> MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+> ```powershell
+> $MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
 > ```
 > 行情类 → `index/stocks/sector/sina/kline`；抓 HTML 页（公告/研报）→ `get "<url>"`。
 

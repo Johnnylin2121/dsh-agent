@@ -1,6 +1,6 @@
 ---
 name: obsidian-reconcile
-description: 检测并解决Obsidian vault中的矛盾信息——自动扫描笔记中的冲突观点、过时数据、相互矛盾的判断，然后调和或标记待人工决策。当用户说"检查矛盾"、"reconcile vault"、"看看笔记有没有冲突"、"知识库健康检查"、"清理过时信息"时触发。
+description: 检测并解决Obsidian vault中的矛盾信息——自动扫描笔记中的冲突观点、过时数据、相互矛盾的判断，然后调和或标记待人工决策。当用户说"reconcile vault"、"看看笔记有没有冲突"、"知识库健康检查"、"清理过时信息"时触发；盘后复盘语境的矛盾检测见 trading-contradiction-check。
 ---
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # Obsidian Reconcile

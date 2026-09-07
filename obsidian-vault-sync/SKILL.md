@@ -102,6 +102,8 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
    - 概述
    - 关联
 
+> **文中间编辑写法**：obsidian MCP 无逐字编辑工具。在「近期动态」等已有节内插入内容、更新既有计数等文中间修改：`obsidian_read` 读取后 `obsidian_write` 全量重写，或 `obsidian_append` 追加到文末。frontmatter 字段更新用 `obsidian_frontmatter` + `obsidian_set_property`。
+
 ### Step 6: 操作后验证（强制）
 
 在生成报告前，**必须**对本次操作的目标知识网络执行自检。验证清单（参考 AGENTS.md 步骤 3.5）：
@@ -138,7 +140,6 @@ tags: [标签1, 标签2]
 sources: ["[[YYYY-MM-DD-财经早读-关键词]]"]
 related: ["[[关联1]]", "[[关联2]]"]
 ---
-⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # 实体名称
 
 ## 基本信息

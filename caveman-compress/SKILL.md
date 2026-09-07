@@ -1,10 +1,13 @@
 ---
 name: caveman-compress
 description: >
-  Compress natural language memory files (CLAUDE.md, todos, preferences) into caveman format
-  to save input tokens. Preserves all technical substance, code, URLs, and structure.
-  Compressed version overwrites the original file. Human-readable backup saved as FILE.original.md.
-  Trigger: /caveman-compress FILEPATH or "compress memory file"
+  Compress natural language memory files (CLAUDE.md, ~/.dsh/MEMORY.md, todos, preferences) into
+  caveman format to save input tokens. Preserves all technical substance, code, URLs, and structure.
+  Compressed version overwrites the original file. Backup: manual path saves FILE.original.md
+  alongside the source; CLI path saves under %LOCALAPPDATA%\caveman-compress\backups\.
+  Trigger: /caveman-compress FILEPATH or "compress memory file". Confirm with the user before
+  compressing ~/.dsh/MEMORY.md — it holds sensitive sections, and the CLI path sends content
+  to the API when ANTHROPIC_API_KEY is set.
 ---
 
 # Caveman Compress
@@ -21,12 +24,16 @@ Compress natural language files (CLAUDE.md, todos, preferences) into caveman-spe
 
 本机（DSH/Windows）无 Claude 环境，`scripts/` CLI 不可执行（除非用户另行配置密钥）。默认走**模型手工压缩**：
 
+> **DSH 目标**：`$HOME\.dsh\MEMORY.md`（amazon-desk / trading-desk 两个 agent-preset 每次动手前按需读取，压缩有真实收益）。**压缩 MEMORY.md 前必须先征得用户确认**——该文件含暗号字典、持仓等敏感段；手工路径全程本地无外发，CLI 路径在配置 ANTHROPIC_API_KEY 时会把全文发给 Anthropic API。
+
+> **备份双路径**：手工路径=同目录 `<file>.original.md`；CLI 路径=`%LOCALAPPDATA%\caveman-compress\backups\<父目录>\`（置于源目录之外，防 auto-loader 重吞备份）。
+
 1. 备份：先复制原文件为 `<file>.original.md`
 2. 读全文，仅压缩散文部分，严格按下方 Compression Rules 执行（代码/URL/路径/命令/数字逐字保留）
 3. 覆盖写回原文件（不碰备份）
 4. 返回：新文件路径 + 备份路径 + 压缩前后字符数对比
 
-可选 CLI 路径（仅当已配置 ANTHROPIC_API_KEY 或 claude CLI 时）：从本 SKILL 所在目录运行 `python3 -m scripts <absolute_filepath>`，脚本自动检测环境；失败则回退上述手工压缩。
+可选 CLI 路径（仅当已配置 ANTHROPIC_API_KEY 或 claude CLI 时）：在本 SKILL 基目录（`caveman-compress\`，cwd=skill 基目录）运行 `python -m scripts <absolute_filepath>`（Windows 无 `python3` 命令），脚本自动检测环境；失败则回退上述手工压缩。
 
 ## Compression Rules
 

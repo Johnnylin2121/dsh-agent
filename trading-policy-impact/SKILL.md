@@ -2,7 +2,7 @@
 name: trading-policy-impact
 description: >
   分析重大政策/事件的影响链路，映射受益/受损标的，追踪市场反应。
-  在财经早读同步时自动触发，或用户手动要求。
+  仅手动触发（当前无自动钩子）。
   触发词：追踪这个政策、分析XXX政策影响、政策追踪。
 ---
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
@@ -10,7 +10,7 @@ description: >
 
 ## 触发条件
 
-- 财经早读同步时，对重大政策/事件自动触发
+- 仅手动触发（当前无自动钩子）
 - 用户说"追踪这个政策"、"分析 XXX 政策影响"
 
 ## 重大政策判定标准
@@ -45,14 +45,15 @@ description: >
 "{政策名}" 落地 实施 细则
 ```
 
-**事件快讯/情绪补充（本机 HTTPS 修复前，用工具抓取）**：
-- ⚠️ 本机 schannel 出站 TLS 损坏，curl/xueqiu 工具不可用；用 `dsh-market.mjs`（node.fetch）：
-  ```bash
-  MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+**事件快讯/情绪补充（用工具抓取）**：
+- ⚠️ 本机 curl 不可用（schannel）；`xueqiu_*`（quote/kline/news/hot/search）与 `_shared/dsh-market.mjs`（node.fetch）均可用：
+  ```powershell
+  $MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
   node "$MK" get "<新闻/公告/研报 url>"   # 抓页面转纯文本
   node "$MK" index / stocks / sector / sina   # 行情复核
   ```
 - `node "$MK" get` 抓取政策发布后的即时快讯与市场解读页面，作为 web search 的补充。
+- `xueqiu_news`（雪球 7×24 快讯流）纳入快讯补充源，捕捉政策即时反应与市场情绪。
 - `node "$MK" sector` / `stocks` / `sina`：给受影响板块/标的口径复核与实时数据（`"市场反应追踪"` 表格的数据来源）。
 
 分析维度：

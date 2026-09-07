@@ -37,6 +37,10 @@ def main():
     ap.add_argument('-b', '--bullets', help='五点文件(每行一条)')
     ap.add_argument('-n', '--top', type=int, default=30)
     args = ap.parse_args()
+    if not args.input and not args.titles:
+        sys.exit('用法: python kw_analysis.py -i competitors.txt 或 -t titles.txt [-b bullets.txt]')
+    if args.bullets and not args.titles:
+        sys.exit('-b 需与 -t 搭配使用')
 
     titles, bullets = [], []
     if args.input:
