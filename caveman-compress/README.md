@@ -10,9 +10,11 @@
 
 ---
 
-A Claude Code skill that compresses your project memory files (`CLAUDE.md`, todos, preferences) into caveman format — so every session loads fewer tokens automatically.
+Upstream (Claude Code): a Claude Code skill that compresses your project memory files (`CLAUDE.md`, todos, preferences) into caveman format — so every session loads fewer tokens automatically.
 
 Claude read `CLAUDE.md` on every session start. If file big, cost big. Caveman make file small. Cost go down forever.
+
+**DSH note**: DSH never auto-loads memory files. The `amazon-desk` and `trading-desk` agent presets read `$HOME\.dsh\MEMORY.md` on demand at task start, so compressing it cuts real input tokens. Ask the user before compressing it — the file holds sensitive sections (cipher dictionary, positions), and the optional CLI path sends file content to the Anthropic API when `ANTHROPIC_API_KEY` is set. Backup: manual path writes `<file>.original.md` alongside the source; CLI path writes under `%LOCALAPPDATA%\caveman-compress\backups\`.
 
 ## What It Do
 
@@ -55,7 +57,7 @@ All validations passed ✅ — headings, code blocks, URLs, file paths preserved
 </td>
 <td width="50%">
 
-### <img src="../../docs/assets/dancing-rock.svg" width="20" height="20" alt="rock"/> Caveman (285 tokens)
+### <img src="https://raw.githubusercontent.com/JuliusBrussee/caveman/main/docs/assets/dancing-rock.svg" width="20" height="20" alt="rock"/> Caveman (285 tokens)
 
 > "Prefer TypeScript strict mode always. No `any` unless unavoidable — comment why if used. Proper types catch bugs early."
 

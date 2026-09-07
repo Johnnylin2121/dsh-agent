@@ -19,6 +19,9 @@ thresholds:
   cpc:
     high: 5.0
   
+  roas:
+    good: 3.0   # 健康线 >3（优秀>4）；SKILL Phase 2A 与 glossary 引用此档
+  
   spend:
     min_for_analysis: 5.0
 

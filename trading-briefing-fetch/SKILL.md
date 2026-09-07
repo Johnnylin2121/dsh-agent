@@ -1,4 +1,4 @@
-﻿---
+---
 name: trading-briefing-fetch
 description: 财经早报数据自动抓取（akshare）。商品价格表/美股指数/财联社系快讯 → 生成标准格式 markdown 草稿到 交易体系/早报草稿/（与正式早读隔离）。用户说"跑早报"、"抓今天数据"、"生成早报草稿"时使用。
 ---
@@ -19,7 +19,7 @@ description: 财经早报数据自动抓取（akshare）。商品价格表/美�
 - 草稿头部带"自动生成、未经人工审核"标记；**不自动入库**
 - 人工审核通过后，走现有 ingest 流程（obsidian-vault-sync skill）转正式文件
 - 数据口径：商品/美股 = 最近两根日线收盘（与人工版"15:00→次日6:30"口径不同，需人工校准）；A50 = 新浪 hq.sinajs.cn hf_CHA50CFD（实时快照，字段0=最新/7=昨收）
-- 依赖：Python 3.12 + akshare（`C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe`）；接口偶发失效时重试 1 次并保留 [待补]
+- 依赖：Python 3.12 + akshare（`C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe`）——Python312 全路径为实测正确（2026-09 实测 akshare 1.18.64；默认 `python` 是无 akshare 的 venv 3.11.15，勿改用裸 python）；接口偶发失效时重试 1 次并保留 [待补]
 
 ## 脚本
 - 抓取核心: `_系统/scripts/fetch-briefing.py`

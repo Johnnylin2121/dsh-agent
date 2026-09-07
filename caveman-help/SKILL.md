@@ -16,10 +16,10 @@ Display this reference card when invoked. One-shot — do NOT change mode, write
 |------|---------|-------------|
 | **Lite** | `/caveman lite` | Drop filler. Keep sentence structure. |
 | **Full** | `/caveman` | Drop articles, filler, pleasantries, hedging. Fragments OK. Default. |
-| **Ultra** | `/caveman ultra` | Extreme compression. Bare fragments. Tables over prose. |
-| **Wenyan-Lite** | `/caveman wenyan-lite` | Classical Chinese style, light compression. |
-| **Wenyan-Full** | `/caveman wenyan` | Full 文言文. Maximum classical terseness. |
-| **Wenyan-Ultra** | `/caveman wenyan-ultra` | Extreme. Ancient scholar on a budget. |
+| **Ultra** | `/caveman ultra` | Bare fragments, each fact stated once. No invented abbreviations, no arrows. |
+| **Wenyan-Lite** | `/caveman wenyan-lite` | Semi-classical register, light compression. |
+| **Wenyan-Full** | `/caveman wenyan-full` | Full 文言文. Maximum classical terseness. |
+| **Wenyan-Ultra** | `/caveman wenyan-ultra` | Extreme classical compression, maximum terse. |
 
 Mode stick until changed or session end.
 
@@ -41,6 +41,8 @@ Say "stop caveman" or "normal mode". Resume anytime with `/caveman`.
 Keep user's language by default. User write Portuguese → reply Portuguese caveman. Compress the style, not the language. Technical terms, code, commands, commit types, and exact error strings stay verbatim unless user ask for translation.
 
 ## Configure Default Mode
+
+> Upstream only — DSH 无 hook/会话启动机制，本节在 DSH 下无效。
 
 Default mode = `full`. Change it:
 

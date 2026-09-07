@@ -4,7 +4,7 @@
 改进版：修复数据清洗bug，增强列名自动检测，支持配置外部化
 
 用法:
-    # 完整分析
+    # 完整分析（占位，未实现；run 会提示改用下方子命令组合）
     python analysis_v2.py run --product product.xlsx --ad ad.xlsx --search search.xlsx --brand brand.xlsx
 
     # 仅数据清洗
@@ -22,8 +22,8 @@
     # 数据验证
     python analysis_v2.py validate --input product.xlsx
 
-    # 生成配置文件模板
-    python analysis_v2.py init-config --output ./config/analysis_config.yaml
+    # 生成配置文件模板（默认 ./analysis_config.template.yaml，勿指向正式 config）
+    python analysis_v2.py init-config --output ./analysis_config.template.yaml
 
 依赖:
     pip install pandas openpyxl pyyaml
@@ -310,11 +310,12 @@ def clean_dataframe(df, file_type='product', config=None):
     numeric_cols = []
     
     if file_type == 'product':
-        percentage_cols = ['cvr', 'acos', 'tacos', 'roas', 'ctr']
-        numeric_cols = ['sales', 'revenue', 'orders', 'ad_spend', 'impressions', 'clicks', 'natural_orders']
+        # ROAS 是倍数不是百分比，禁止 ÷100（bug 修复：原先在 percentage_cols 会把 3.5 变成 0.035）
+        percentage_cols = ['cvr', 'acos', 'tacos', 'ctr']
+        numeric_cols = ['sales', 'revenue', 'orders', 'ad_spend', 'impressions', 'clicks', 'natural_orders', 'roas']
     elif file_type == 'ad':
-        percentage_cols = ['acos', 'roas', 'ctr', 'cvr']
-        numeric_cols = ['impressions', 'clicks', 'spend', 'sales', 'orders']
+        percentage_cols = ['acos', 'ctr', 'cvr']
+        numeric_cols = ['impressions', 'clicks', 'spend', 'sales', 'orders', 'roas']
     elif file_type == 'search':
         percentage_cols = ['ctr', 'cvr', 'acos']
         numeric_cols = ['impressions', 'clicks', 'spend', 'sales', 'orders']
@@ -497,8 +498,8 @@ def extract_keyword_roots(search_term, compound_roots=None):
     term = str(search_term).lower().strip()
     roots = set()
     
-    # 1. 提取ASIN（10位字母数字）
-    asins = re.findall(r'[a-z0-9]{10}', term)
+    # 1. 提取ASIN（仅 b0 开头的 10 位，避免把 waterproof 等 10 字母普通词误判为 ASIN）
+    asins = re.findall(r'\bb0[a-z0-9]{8}\b', term)
     roots.update(asins)
     
     # 2. 匹配组合词根
@@ -644,7 +645,19 @@ def generate_negation_list(root_df):
                 '优先级': 'P1-高',
                 '否定理由': f'{root} ACOS {acos:.1f}%，花费${spend:.2f}仅{orders}单'
             })
-        # P2-中：有花费无订单 且 花费>$5
+        # P2-中：ACOS>50% 且 花费>$5（与 SKILL.md 5.2 优先级表对齐）
+        elif acos > 50 and spend > 5:
+            negations.append({
+                '否定词根': root,
+                '否定类型': neg_type,
+                '命中搜索词': f'包含"{root}"的搜索词',
+                '点击量': clicks,
+                '花费': spend,
+                '订单': orders,
+                '优先级': 'P2-中',
+                '否定理由': f'{root} ACOS {acos:.1f}%，花费${spend:.2f}仅{orders}单，需优化'
+            })
+        # P3-低：有花费无订单 且 花费>$5（7天内处理）
         elif orders == 0 and spend > 5:
             negations.append({
                 '否定词根': root,
@@ -653,7 +666,7 @@ def generate_negation_list(root_df):
                 '点击量': clicks,
                 '花费': spend,
                 '订单': 0,
-                '优先级': 'P2-中',
+                '优先级': 'P3-低',
                 '否定理由': f'{root} 花费${spend:.2f}，{clicks}次点击，0订单'
             })
     
@@ -756,11 +769,11 @@ def analyze_keyword_coverage(root_df, listing_data):
 
 def get_coverage_suggestion(coverage, position, acos, orders, root):
     """根据覆盖状态和搜索词表现生成优化建议"""
-    if coverage == '❌' and acos < 25 and orders >= 3:
+    if coverage == '❌' and acos < 20 and orders >= 3:
         return '建议加入标题或五点', f'{root} 是核心盈利词根(ACOS {acos:.1f}%)，但未出现在前台Listing中'
-    elif coverage == '✅' and position == '描述' and acos < 25 and orders >= 3:
+    elif coverage == '✅' and position == '描述' and acos < 20 and orders >= 3:
         return '建议提升到标题或五点', f'{root} 当前仅在描述中，应提升到更高权重位置'
-    elif coverage == '✅' and position in ['标题', '五点'] and acos < 25:
+    elif coverage == '✅' and position in ['标题', '五点'] and acos < 20:
         return '维持现状', f'{root} 已在{position}中覆盖，表现良好'
     elif coverage == '✅' and position == '标题' and acos > 50:
         return '评估是否替换', f'{root} 在标题中但ACOS高达{acos:.1f}%'
@@ -889,7 +902,7 @@ def main():
     
     # init-config 子命令
     init_parser = subparsers.add_parser('init-config', help='生成配置文件模板')
-    init_parser.add_argument('--output', '-o', default='./config/analysis_config.yaml', help='输出路径')
+    init_parser.add_argument('--output', '-o', default='./analysis_config.template.yaml', help='输出路径（模板文件，避免覆盖正式 config/analysis_config.yaml）')
     
     args = parser.parse_args()
     
@@ -945,8 +958,8 @@ def main():
         
         # 打印摘要
         print(f"词根分析完成: {len(roots_df)} 个词根")
-        print(f"\n高效词根 (ACOS<25%, 订单>=3):")
-        good = roots_df[(roots_df['ACOS'] < 25) & (roots_df['订单'] >= 3)]
+        print(f"\n高效词根 (ACOS<20%, 订单>=3):")
+        good = roots_df[(roots_df['ACOS'] < 20) & (roots_df['订单'] >= 3)]
         for _, row in good.head(10).iterrows():
             print(f"  {row['词根']}: ACOS={row['ACOS']}%, 订单={row['订单']}, 花费=${row['花费']}")
         
@@ -1010,7 +1023,7 @@ def main():
         # 需要加入前台的高效词根
         need_add = coverage_df[
             (coverage_df['前台覆盖'] == '❌') &
-            (coverage_df['搜索词ACOS'] < 25) &
+            (coverage_df['搜索词ACOS'] < 20) &
             (coverage_df['订单'] >= 3)
             ]
         if len(need_add) > 0:
