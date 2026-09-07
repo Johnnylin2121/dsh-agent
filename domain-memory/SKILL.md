@@ -273,7 +273,7 @@ dependencies:
 5. 可靠程度？(high/medium/low)
 > 用户: "medium"
 
-[系统] ✅ 已写入 工作/记忆管理/选品记忆/2026-07-28-选品记忆-cargador-inalambrico.md
+[系统] ✅ 已写入 工作/亚马逊工作管理/记忆管理/选品记忆/2026-07-28-选品记忆-cargador-inalambrico.md
 [系统] 规则已更新至 MEMORY.md
 ```
 
