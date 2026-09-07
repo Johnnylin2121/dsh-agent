@@ -33,9 +33,9 @@
 
 `plugins/` 目录备份 DSH web profile 的插件配置（`package.json` + 一键恢复脚本 `restore-plugins.ps1`）。`plugins/dsh-patches/` 额外备份两个**本地补丁**（context-doctor 原生 fetch 版 + dsh-xueqiu TLS 规避/浮窗隐藏补丁），来历与恢复方法见其 README；备份根因是本机 schannel TLS 损坏（详见 `plugins/dsh-patches/README.md`）。
 
-当前插件：`dsh-plugin-deepeye`（视觉）· `dsh-peak-cost-mode`（高峰省流）· `dsh-find-plugin` · `dshmarket` · `dsh-xueqiu` · `dsh-obsidian` · `dsh-context-doctor`（本地补丁 link:）· `@dickpy/dsh-imagegen`（生图）· `@liustack/modsearch`（网页/X读取）· `@linxin666/dsh-client-ui-task-board`（cron 定时任务看板）· `dsh-rss-digest`（RSS→每日简报，早报数据源之一）· `dsh-whale-widget`（余额挂件）。
+当前插件：`dsh-plugin-deepeye`（视觉，后端 opencode-go mimo-v2.5，见 profile cordis.patch.yml）· `dsh-peak-cost-mode`（高峰省流）· `dsh-find-plugin` · `dshmarket` · `dsh-xueqiu` · `dsh-obsidian` · `dsh-context-doctor`（本地补丁 link:）· `@liustack/modsearch`（网页/X读取）· `@linxin666/dsh-client-ui-task-board`（cron 定时任务看板）· `dsh-rss-digest`（RSS→每日简报，早报数据源之一）· `dsh-whale-widget`（余额挂件）。
 
-> 2026-09-13 已移除：`@vectorize-io/hindsight-coding-agents`（用户评估后不符合预期，未配 token 即弃用；配置目录 `~/.hindsight` 已删）。
+> 2026-09-13 已移除：`@vectorize-io/hindsight-coding-agents`（用户评估后不符合预期，未配 token 即弃用；配置目录 `~/.hindsight` 已删）、`@dickpy/dsh-imagegen`（本机无生图渠道/opencode-go 无 images 端点，用户弃用；数据目录 `~/.dsh/dsh-imagegen` 暂留以防复装）。DeepEye 视觉后端已配置为 opencode-go `mimo-v2.5`（用户指定；minimax-m3 实测可用作备选）。
 
 ### 共享工具
 
