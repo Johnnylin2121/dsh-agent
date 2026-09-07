@@ -81,7 +81,7 @@ confidence: high
 
 ## 领域模板：Amazon 广告（amazon-ad）
 
-路径：`工作/记忆管理/广告记忆/YYYY-MM-DD-广告记忆.md`
+路径：`工作/亚马逊工作管理/记忆管理/广告记忆/YYYY-MM-DD-广告记忆.md`
 
 ### Body 结构
 
@@ -121,7 +121,7 @@ confidence: high
 
 ## 领域模板：Amazon Listing（amazon-listing）
 
-路径：`工作/记忆管理/Listing记忆/YYYY-MM-DD-Listing记忆.md`
+路径：`工作/亚马逊工作管理/记忆管理/Listing记忆/YYYY-MM-DD-Listing记忆.md`
 
 ### Body 结构
 
@@ -158,7 +158,7 @@ confidence: medium
 
 ## 领域模板：Amazon 选品（amazon-selection）
 
-路径：`工作/记忆管理/选品记忆/YYYY-MM-DD-选品记忆.md`
+路径：`工作/亚马逊工作管理/记忆管理/选品记忆/YYYY-MM-DD-选品记忆.md`
 
 ### Body 结构
 
@@ -240,10 +240,14 @@ D:/OneDrive/ObsidianVault/
 │       ├── 2026-07-28-交易记忆.md
 │       └── 2026-07-29-交易记忆.md
 ├── 工作/
-│   └── 记忆管理/          ← 新增
-│       ├── 广告记忆/       ← Amazon 广告记忆
-│       ├── Listing记忆/    ← Amazon Listing 记忆
-│       └── 选品记忆/       ← Amazon 选品记忆
+│   └── 亚马逊工作管理/    ← 亚马逊文件统一根目录
+│       ├── 亚马逊分析/     ← 广告分析/Listing报告
+│       ├── 选品报告/       ← 选品分析
+│       ├── 附件/           ← Excel 可视化文件
+│       └── 记忆管理/       ← 新增
+│           ├── 广告记忆/   ← Amazon 广告记忆
+│           ├── Listing记忆/ ← Amazon Listing 记忆
+│           └── 选品记忆/   ← Amazon 选品记忆
 └── 通用/
     └── 决策记忆/          ← 新增
 ```

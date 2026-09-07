@@ -64,8 +64,8 @@
 
 ## 输出位置
 
-报告写入 **Obsidian Vault**:`{VAULT_PATH}/工作/亚马逊分析/<ASIN>-<产品名>-listing.md`
-(DSH 环境的 vault 路径以 `~/.dsh/MEMORY.md` 记录为准,AI 会自动读取。)
+报告写入 **Obsidian Vault**:`{VAULT_PATH}/工作/亚马逊工作管理/亚马逊分析/<ASIN>-<产品名>-listing.md`
+(所有亚马逊相关文件统一归入 `{VAULT_PATH}/工作/亚马逊工作管理/`,禁止新建顶级 `工作/亚马逊分析/` 等目录。vault 路径以 `~/.dsh/MEMORY.md` 记录为准,AI 会自动读取。)
 
 ---
 
