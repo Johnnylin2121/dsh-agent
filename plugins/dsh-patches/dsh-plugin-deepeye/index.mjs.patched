@@ -1,0 +1,1398 @@
+import { defineTool } from "@deepseek-ai/dsh-tools";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import z from "@deepseek-ai/schemastery";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { extname, isAbsolute, resolve } from "node:path";
+//#region src/config.ts
+/**
+* DeepEye plugin configuration schema.
+*
+* Cordis-native config: declared via schemastery, fed from cordis.yml or
+* environment variables. The user provides exactly one vision backend.
+*
+* API Key resolution priority:
+*   1. Explicit `apiKey` in cordis.yml config
+*   2. Provider-specific env var (auto-detected from `provider`)
+*   3. Generic `DEEPEYE_API_KEY` env var
+*/
+/** Runtime configuration schema for the DeepEye vision plugin. */
+const Config = z.object({
+	provider: z.union([
+		"openai",
+		"gemini",
+		"custom"
+	]).default("openai").description("Vision backend: openai, gemini, or any OpenAI-compatible endpoint (custom)"),
+	apiKey: z.string().default("").description("API key; empty falls back to OPENAI_API_KEY / GEMINI_API_KEY / DEEPEYE_API_KEY by provider"),
+	baseUrl: z.string().default("").description("Base URL override for custom or self-hosted endpoints"),
+	model: z.string().default("").description("Vision model name; empty uses the provider default"),
+	cacheEnabled: z.boolean().default(true),
+	requestTimeout: z.number().default(3e4).description("Timeout in milliseconds for outgoing HTTP requests"),
+	maxRetries: z.number().default(2).description("Number of retries for transient HTTP failures (429/5xx/network errors)"),
+	retryDelay: z.number().default(1e3).description("Base delay in milliseconds before the first retry (exponential backoff)"),
+	maxImageDownloadBytes: z.number().default(20971520).description("Maximum bytes accepted when downloading an image from an HTTP(S) URL"),
+	cacheMaxSize: z.number().default(200),
+	cacheTtlSeconds: z.number().default(86400).description("Cache entry lifetime in seconds (0 disables TTL)"),
+	maxImageDimension: z.number().default(1536),
+	jpegQuality: z.number().default(85),
+	maxTokens: z.number().default(4096).description("Maximum response tokens for OpenAI-compatible vision endpoints"),
+	pasteCompat: z.union([
+		"off",
+		"auto",
+		"force"
+	]).default("auto").description("Paste-compat mode: pasted images are vision-translated into text before text-only adapters. off=disabled, auto=only when the target model lacks image input, force=always translate")
+});
+/**
+* Resolve the effective API key from config + env vars.
+* Priority: config.apiKey > provider-specific env > DEEPEYE_API_KEY
+*/
+function resolveApiKey(config) {
+	if (config.apiKey) return config.apiKey;
+	return {
+		openai: process.env.OPENAI_API_KEY || "",
+		gemini: process.env.GEMINI_API_KEY || "",
+		custom: process.env.DEEPEYE_API_KEY || ""
+	}[config.provider] || process.env.DEEPEYE_API_KEY || "";
+}
+//#endregion
+//#region src/cache.ts
+/**
+* Simple LRU cache for vision results.
+*
+* Caches (provider + baseUrl + imageHash + prompt + model) → response text to
+* reduce redundant API calls for repeated queries on the same image. Entries
+* expire after a configurable TTL; switching providers or endpoints changes
+* the cache key, so stale results from another backend can never leak in.
+*/
+var VisionCache = class {
+	store = /* @__PURE__ */ new Map();
+	maxSize;
+	/** Entry lifetime in ms; 0 disables expiry. */
+	ttlMs;
+	constructor(maxSize = 200, ttlSeconds = 86400) {
+		this.maxSize = maxSize;
+		this.ttlMs = Math.max(0, Math.floor(ttlSeconds * 1e3));
+	}
+	/**
+	* Generate a cache key from the backend identity, image data, prompt, and model.
+	* `endpoint` should include the provider and base URL, e.g. `custom|https://…`.
+	*/
+	static computeKey(endpoint, imageBase64, prompt, model) {
+		const hash = createHash("sha256");
+		hash.update(endpoint);
+		hash.update("|");
+		hash.update(imageBase64);
+		hash.update(`|${prompt}|${model}`);
+		return hash.digest("hex");
+	}
+	/** Get a cached result. Returns undefined if not found or expired. */
+	get(key) {
+		const entry = this.store.get(key);
+		if (!entry) return void 0;
+		if (this.ttlMs > 0 && Date.now() >= entry.expiresAt) {
+			this.store.delete(key);
+			return;
+		}
+		this.store.delete(key);
+		this.store.set(key, entry);
+		return entry.value;
+	}
+	/** Store a result in the cache. Evicts oldest entries when full. */
+	set(key, value) {
+		if (this.maxSize <= 0) return;
+		this.store.delete(key);
+		while (this.store.size >= this.maxSize) {
+			const firstKey = this.store.keys().next().value;
+			if (firstKey !== void 0) this.store.delete(firstKey);
+			else break;
+		}
+		this.store.set(key, {
+			value,
+			timestamp: Date.now(),
+			expiresAt: this.ttlMs > 0 ? Date.now() + this.ttlMs : 0
+		});
+	}
+	/** Clear all cached entries. */
+	clear() {
+		this.store.clear();
+	}
+	/** Number of cached entries. */
+	get size() {
+		return this.store.size;
+	}
+};
+//#endregion
+//#region src/http.ts
+const DEFAULT_TIMEOUT = 3e4;
+const DEFAULT_MAX_RETRIES = 2;
+const DEFAULT_RETRY_DELAY = 1e3;
+/** Upper bound for a single retry sleep (protects against huge Retry-After). */
+const MAX_RETRY_DELAY_MS = 3e4;
+function sleep(ms, signal) {
+	return new Promise((resolve, reject) => {
+		let timer;
+		const onAbort = () => {
+			if (timer !== void 0) clearTimeout(timer);
+			reject(signal?.reason ?? /* @__PURE__ */ new Error("Aborted"));
+		};
+		if (signal) {
+			if (signal.aborted) {
+				reject(signal.reason ?? /* @__PURE__ */ new Error("Aborted"));
+				return;
+			}
+			signal.addEventListener("abort", onAbort, { once: true });
+		}
+		timer = setTimeout(() => {
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+	});
+}
+/** Compute a retry sleep with server Retry-After and local backoff, capped. */
+function retryDelayMs(retryAfter, attempt, baseDelay) {
+	const serverDelay = Number(retryAfter);
+	const delay = Number.isFinite(serverDelay) && serverDelay > 0 ? serverDelay * 1e3 : baseDelay * 2 ** attempt;
+	return Math.min(delay, MAX_RETRY_DELAY_MS);
+}
+/**
+* Fetch with per-attempt timeout and retry on transient failures.
+*
+* Non-transient HTTP responses (4xx other than 429) are returned as-is so the
+* caller can surface a provider-specific error message.
+*/
+async function fetchWithRetry(url, init, options = {}) {
+	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT;
+	const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+	const retryDelay = options.retryDelay ?? DEFAULT_RETRY_DELAY;
+	let lastError;
+	for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(/* @__PURE__ */ new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs);
+		const onExternalAbort = () => controller.abort(options.signal?.reason ?? /* @__PURE__ */ new Error("Aborted"));
+		if (options.signal) {
+			if (options.signal.aborted) {
+				clearTimeout(timeout);
+				throw options.signal.reason ?? /* @__PURE__ */ new Error("Aborted");
+			}
+			options.signal.addEventListener("abort", onExternalAbort, { once: true });
+		}
+		try {
+			const response = await fetch(url, {
+				...init,
+				signal: controller.signal
+			});
+			if (!(response.status === 429 || response.status >= 500) || attempt >= maxRetries) return response;
+			await response.body?.cancel().catch(() => void 0);
+			await sleep(retryDelayMs(response.headers.get("retry-after"), attempt, retryDelay), options.signal);
+		} catch (error) {
+			lastError = error;
+			if (controller.signal.aborted || options.signal?.aborted) throw error;
+			if (attempt >= maxRetries) throw error;
+			await sleep(retryDelayMs(null, attempt, retryDelay), options.signal);
+		} finally {
+			clearTimeout(timeout);
+			options.signal?.removeEventListener("abort", onExternalAbort);
+		}
+	}
+	throw lastError;
+}
+//#endregion
+//#region src/errors.ts
+/** Classified vision error with a friendly, actionable message. */
+var VisionError = class extends Error {
+	code;
+	/** HTTP status when the error originated from an HTTP response. */
+	status;
+	/** Provider/model context, e.g. 'custom/glm-4v-flash'. */
+	context;
+	constructor(code, message, options = {}) {
+		super(message, options.cause !== void 0 ? { cause: options.cause } : void 0);
+		this.name = "VisionError";
+		this.code = code;
+		this.status = options.status;
+		this.context = options.context;
+	}
+};
+/** Whether a thrown value is a classified VisionError. */
+function isVisionError(error) {
+	return error instanceof VisionError;
+}
+/** Extract a human-readable reason from a raw thrown value. */
+function messageOf(error) {
+	if (error instanceof Error) return error.message;
+	if (typeof error === "string") return error;
+	try {
+		return JSON.stringify(error);
+	} catch {
+		return String(error);
+	}
+}
+/** Trim a provider error body to a short, useful snippet. */
+function trimErrorBody(body, max = 160) {
+	const text = body.trim();
+	return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+/**
+* Build a friendly, user-actionable message for an HTTP failure from an
+* OpenAI-compatible or Gemini vision endpoint.
+*/
+function friendlyHttpError(status, body, context) {
+	const detail = trimErrorBody(body);
+	if (status === 401 || status === 403) return new VisionError("auth", `视觉 API 鉴权失败（HTTP ${status}）：API Key 无效、已过期或无权访问该模型（${context}）。` + (detail ? ` 服务端返回：${detail}` : "") + "\n请检查 DEEPEYE_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY 环境变量或配置文件中的 apiKey，并确认该账号可访问当前模型。", {
+		status,
+		context
+	});
+	if (status === 429) return new VisionError("rate_limit", `视觉 API 限流（HTTP 429）：请求过于频繁，自动重试后仍被限制（模型：${context}）。
+请稍等片刻再试，或换用其他模型（如 glm-4v-flash），或调大 config.retryDelay / maxRetries。` + (detail ? ` 服务端返回：${detail}` : ""), {
+		status,
+		context
+	});
+	if (status >= 500) return new VisionError("api", `视觉 API 服务端错误（HTTP ${status}，模型：${context}）。` + (detail ? ` 服务端返回：${detail}` : "") + "\n可稍后重试；若持续出现请检查模型服务状态。", {
+		status,
+		context
+	});
+	return new VisionError("api", `视觉 API 请求失败（HTTP ${status}，模型：${context}）。` + (detail ? ` 服务端返回：${detail}` : "") + "\n请检查 baseUrl、模型名与请求参数是否正确。", {
+		status,
+		context
+	});
+}
+/** Map a raw fetch-level failure (timeout/network/abort) into a VisionError. */
+function friendlyFetchError(error, ctx) {
+	const reason = messageOf(error);
+	const lower = reason.toLowerCase();
+	if (lower.includes("timed out") || lower.includes("timeout") || lower.includes("aborted")) return new VisionError("timeout", `视觉 API 请求超时（${ctx.timeoutMs ?? "未知"}ms，模型：${ctx.context ?? "未知"}）。
+可调大 config.requestTimeout 后重试，或稍后再试。`, {
+		context: ctx.context,
+		cause: error
+	});
+	return new VisionError("network", `无法连接视觉 API（模型：${ctx.context ?? "未知"}）：${reason}
+请检查网络与 baseUrl 配置。`, {
+		context: ctx.context,
+		cause: error
+	});
+}
+/** Friendly error for an invalid/empty vision result. */
+function friendlyEmptyError(context) {
+	return new VisionError("empty", `视觉模型未返回任何文字内容（模型：${context}）。
+可换模型（如 glm-4v-flash）重试，或检查图片是否有效。`, { context });
+}
+//#endregion
+//#region src/image-utils.ts
+/**
+* Image loading and preprocessing utilities.
+*
+* Handles four image source types: local file path, `file://` URL, HTTP(S)
+* URL, and base64 data URI. Preprocessing resizes large images and converts
+* to JPEG for optimal API token usage.
+*/
+/** Known file extension to MIME type mapping. */
+const EXT_MIME_MAP = {
+	".jpg": "image/jpeg",
+	".jpeg": "image/jpeg",
+	".png": "image/png",
+	".gif": "image/gif",
+	".webp": "image/webp",
+	".bmp": "image/bmp"
+};
+/** Raise a classified image-source error. */
+function imageError(cause, detail) {
+	throw new VisionError("image", detail, { cause });
+}
+/**
+* Parse an image source string into base64 data + MIME type.
+*
+* Supports:
+* - Local file paths (absolute or relative to cwd)
+* - `file://` URLs
+* - http(s):// URLs
+* - data:image/...;base64,... data URIs (charset segments tolerated)
+*/
+async function parseImageSource(source, options = {}) {
+	const dataMatch = source.match(/^data:([^;]+(?:;[^,]*)*);base64,(.+)$/);
+	if (dataMatch) {
+		const mimeType = dataMatch[1].split(";")[0].trim() || "image/png";
+		if (!mimeType.startsWith("image/")) imageError(null, `data URI 不是图片（mime-type: ${mimeType}）。`);
+		return {
+			mimeType,
+			base64Data: dataMatch[2]
+		};
+	}
+	if (source.startsWith("data:")) imageError(null, `无效的 data URI 格式（仅支持 base64 图片）：${source.slice(0, 80)}`);
+	if (source.startsWith("file://")) {
+		let filePath;
+		try {
+			filePath = fileURLToPath(source);
+		} catch (cause) {
+			imageError(cause, `无法解析 file:// 路径：${source}`);
+		}
+		return readLocalImage(filePath);
+	}
+	if (/^https?:\/\//i.test(source)) return downloadRemoteImage(source, options);
+	return readLocalImage(resolve(source), source);
+}
+/** Read and base64-encode a local image file with friendly failures. */
+async function readLocalImage(filePath, originalSource) {
+	let buffer;
+	try {
+		buffer = await readFile(filePath);
+	} catch (cause) {
+		const hint = originalSource !== void 0 && !isAbsolute(originalSource) ? `相对路径按进程当前工作目录解析（${process.cwd()}）。请改用绝对路径，或在文件名前加 ./。` : `请确认文件存在且路径正确。`;
+		imageError(cause, `读取图片文件失败：${filePath}（${messageOf(cause)}）。${hint}`);
+	}
+	const ext = extname(filePath).toLowerCase();
+	const mimeType = EXT_MIME_MAP[ext] || "image/png";
+	return {
+		base64Data: buffer.toString("base64"),
+		mimeType
+	};
+}
+/** Download a remote image with size guard, timeout, and retry. */
+async function downloadRemoteImage(source, options) {
+	const maxBytes = options.maxBytes ?? 20971520;
+	let response;
+	try {
+		response = await fetchWithRetry(source, { headers: { Accept: "image/*" } }, {
+			timeoutMs: options.timeoutMs,
+			maxRetries: options.maxRetries,
+			retryDelay: options.retryDelay,
+			signal: options.signal
+		});
+	} catch (error) {
+		imageError(error, `下载图片失败：${source}（${messageOf(error)}）`);
+	}
+	if (!response.ok) {
+		await response.body?.cancel().catch(() => void 0);
+		imageError(null, `下载图片失败：HTTP ${response.status}（${source}）`);
+	}
+	const mimeType = (response.headers.get("content-type") || "image/png").split(";")[0].trim();
+	if (!mimeType.startsWith("image/")) {
+		await response.body?.cancel().catch(() => void 0);
+		imageError(null, `URL 不是图片（content-type: ${mimeType || "unknown"}）：${source}`);
+	}
+	const declaredLength = Number(response.headers.get("content-length"));
+	if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+		await response.body?.cancel().catch(() => void 0);
+		imageError(null, `图片超过最大下载大小（${declaredLength} > ${maxBytes} bytes）：${source}`);
+	}
+	const reader = response.body?.getReader();
+	if (!reader) {
+		let arrayBuffer;
+		try {
+			arrayBuffer = await response.arrayBuffer();
+		} catch (error) {
+			imageError(error, `下载图片失败：${source}（${messageOf(error)}）`);
+		}
+		if (arrayBuffer.byteLength > maxBytes) imageError(null, `图片超过最大下载大小（${arrayBuffer.byteLength} > ${maxBytes} bytes）：${source}`);
+		return {
+			base64Data: Buffer.from(arrayBuffer).toString("base64"),
+			mimeType
+		};
+	}
+	const chunks = [];
+	let total = 0;
+	for (;;) {
+		let chunk;
+		try {
+			chunk = await reader.read();
+		} catch (error) {
+			imageError(error, `下载图片中断：${source}（${messageOf(error)}）`);
+		}
+		const { done, value } = chunk;
+		if (done) break;
+		total += value.byteLength;
+		if (total > maxBytes) {
+			await reader.cancel().catch(() => void 0);
+			imageError(null, `图片超过最大下载大小（${total} > ${maxBytes} bytes）：${source}`);
+		}
+		chunks.push(value);
+	}
+	return {
+		base64Data: Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("base64"),
+		mimeType
+	};
+}
+/** Warn only once per process about a broken sharp install. */
+let sharpWarningShown = false;
+/**
+* Preprocess an image: resize if exceeds maxDimension, convert to JPEG.
+*
+* Uses `sharp` for high-performance image manipulation.
+* Falls back to original data if sharp is unavailable or processing fails
+* (warning is emitted only once, not per image, to avoid log spam).
+*
+* @param base64Data - Original base64 image data.
+* @param mimeType - Original MIME type.
+* @param maxDimension - Maximum width/height in pixels.
+* @param jpegQuality - JPEG compression quality (1-100).
+* @returns Processed [base64Data, mimeType] tuple.
+*/
+async function preprocessImage(base64Data, mimeType, maxDimension, jpegQuality) {
+	try {
+		const sharp = (await import("sharp")).default;
+		return [(await sharp(Buffer.from(base64Data, "base64")).resize({
+			width: maxDimension,
+			height: maxDimension,
+			fit: "inside",
+			withoutEnlargement: true
+		}).jpeg({ quality: jpegQuality }).toBuffer()).toString("base64"), "image/jpeg"];
+	} catch (error) {
+		if (!sharpWarningShown) {
+			sharpWarningShown = true;
+			console.warn("[deepeye-vision] sharp is unavailable or preprocessing failed; images will be sent unresized/original. Run `pnpm install` in the plugin directory to enable resizing. Detail:", error);
+		}
+		return [base64Data, mimeType];
+	}
+}
+//#endregion
+//#region src/vision/openai.ts
+const DEFAULT_MODEL$1 = "gpt-4o";
+const DEFAULT_BASE_URL$1 = "https://api.openai.com/v1";
+/**
+* OpenAI reasoning models (o-series / gpt-5) require `max_completion_tokens`;
+* chat models use the legacy `max_tokens`.
+*/
+function maxTokensField(model) {
+	return /^(o\d|o\d-mini|gpt-5)/i.test(model.trim()) ? "max_completion_tokens" : "max_tokens";
+}
+var OpenAIAdapter = class {
+	provider = "openai";
+	apiKey;
+	baseUrl;
+	model;
+	maxTokens;
+	timeoutMs;
+	maxRetries;
+	retryDelay;
+	constructor(options) {
+		this.apiKey = options.apiKey;
+		this.baseUrl = options.baseUrl || DEFAULT_BASE_URL$1;
+		this.model = options.model || DEFAULT_MODEL$1;
+		this.maxTokens = options.maxTokens || 4096;
+		this.timeoutMs = options.timeoutMs ?? 3e4;
+		this.maxRetries = options.maxRetries ?? 2;
+		this.retryDelay = options.retryDelay ?? 1e3;
+	}
+	async describe(base64Data, mimeType, prompt, signal) {
+		const context = `${this.provider}/${this.model}`;
+		let response;
+		try {
+			const headers = { "Content-Type": "application/json" };
+			// 本机 patch 2026-09-13: opencode Console Go 网关要求 x-opencode-session 头
+			// （缺失时 400 MissingSessionID）。每进程一个稳定值满足路由要求。
+			if (this.baseUrl.includes("opencode.ai")) headers["x-opencode-session"] = "dsh-deepeye-" + (globalThis.crypto?.randomUUID?.() ?? "00000000-0000-0000-0000-000000000000");
+			if (this.apiKey) headers.Authorization = `Bearer ${this.apiKey}`;
+			response = await fetchWithRetry(`${this.baseUrl}/chat/completions`, {
+				method: "POST",
+				headers,
+				body: JSON.stringify({
+					model: this.model,
+					messages: [{
+						role: "user",
+						content: [{
+							type: "text",
+							text: prompt
+						}, {
+							type: "image_url",
+							image_url: { url: `data:${mimeType};base64,${base64Data}` }
+						}]
+					}],
+					[maxTokensField(this.model)]: this.maxTokens
+				})
+			}, {
+				timeoutMs: this.timeoutMs,
+				maxRetries: this.maxRetries,
+				retryDelay: this.retryDelay,
+				signal
+			});
+		} catch (error) {
+			if (signal?.aborted) throw error;
+			if (error instanceof VisionError) throw error;
+			throw friendlyFetchError(error, {
+				timeoutMs: this.timeoutMs,
+				context
+			});
+		}
+		if (!response.ok) {
+			const errText = await response.text().catch(() => "");
+			throw friendlyHttpError(response.status, errText, context);
+		}
+		let data;
+		try {
+			data = await response.json();
+		} catch (error) {
+			throw new VisionError("api", `视觉 API 返回了无法解析的响应体（${context}）：${messageOf(error)}`, {
+				context,
+				cause: error
+			});
+		}
+		const content = data.choices?.[0]?.message?.content?.trim();
+		if (!content) throw friendlyEmptyError(context);
+		return content;
+	}
+};
+//#endregion
+//#region src/vision/gemini.ts
+const DEFAULT_MODEL = "gemini-2.0-flash";
+const DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+var GeminiAdapter = class {
+	provider = "gemini";
+	apiKey;
+	baseUrl;
+	model;
+	maxTokens;
+	timeoutMs;
+	maxRetries;
+	retryDelay;
+	constructor(options) {
+		this.apiKey = options.apiKey;
+		this.baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+		this.model = options.model || DEFAULT_MODEL;
+		this.maxTokens = options.maxTokens || 4096;
+		this.timeoutMs = options.timeoutMs ?? 3e4;
+		this.maxRetries = options.maxRetries ?? 2;
+		this.retryDelay = options.retryDelay ?? 1e3;
+	}
+	async describe(base64Data, mimeType, prompt, signal) {
+		const context = `${this.provider}/${this.model}`;
+		if (!this.apiKey) throw new VisionError("auth", "未配置视觉 API Key（Gemini）。请在配置中设置 apiKey，或设置环境变量 GEMINI_API_KEY。", { context });
+		const url = `${this.baseUrl}/models/${this.model}:generateContent`;
+		let response;
+		try {
+			response = await fetchWithRetry(url, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"x-goog-api-key": this.apiKey
+				},
+				body: JSON.stringify({
+					contents: [{ parts: [{ text: prompt }, { inline_data: {
+						mime_type: mimeType,
+						data: base64Data
+					} }] }],
+					generationConfig: { maxOutputTokens: this.maxTokens }
+				})
+			}, {
+				timeoutMs: this.timeoutMs,
+				maxRetries: this.maxRetries,
+				retryDelay: this.retryDelay,
+				signal
+			});
+		} catch (error) {
+			if (signal?.aborted) throw error;
+			if (error instanceof VisionError) throw error;
+			throw friendlyFetchError(error, {
+				timeoutMs: this.timeoutMs,
+				context
+			});
+		}
+		if (!response.ok) {
+			const errText = await response.text().catch(() => "");
+			throw friendlyHttpError(response.status, errText, context);
+		}
+		let data;
+		try {
+			data = await response.json();
+		} catch (error) {
+			throw new VisionError("api", `视觉 API 返回了无法解析的响应体（${context}）：${messageOf(error)}`, {
+				context,
+				cause: error
+			});
+		}
+		const text = (data.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? "").filter(Boolean).join("\n").trim();
+		if (!text) throw friendlyEmptyError(context);
+		return text;
+	}
+};
+//#endregion
+//#region src/vision/factory.ts
+/**
+* Create a vision adapter from the resolved plugin config.
+*
+* @param config - The resolved plugin configuration.
+* @param apiKey - The resolved API key (already checked env fallback).
+* @param modelOverride - Optional per-call model override.
+* @returns A VisionAdapter instance.
+*/
+function createVisionAdapter(config, apiKey, modelOverride) {
+	const effectiveModel = modelOverride || config.model || void 0;
+	switch (config.provider) {
+		case "openai": return new OpenAIAdapter({
+			apiKey,
+			baseUrl: config.baseUrl || void 0,
+			model: effectiveModel,
+			maxTokens: config.maxTokens,
+			timeoutMs: config.requestTimeout,
+			maxRetries: config.maxRetries,
+			retryDelay: config.retryDelay
+		});
+		case "gemini": return new GeminiAdapter({
+			apiKey,
+			baseUrl: config.baseUrl || void 0,
+			model: effectiveModel,
+			maxTokens: config.maxTokens,
+			timeoutMs: config.requestTimeout,
+			maxRetries: config.maxRetries,
+			retryDelay: config.retryDelay
+		});
+		case "custom": return new OpenAIAdapter({
+			apiKey,
+			baseUrl: config.baseUrl,
+			model: effectiveModel,
+			maxTokens: config.maxTokens,
+			timeoutMs: config.requestTimeout,
+			maxRetries: config.maxRetries,
+			retryDelay: config.retryDelay
+		});
+		default: throw new Error(`Unsupported vision provider: ${config.provider}`);
+	}
+}
+//#endregion
+//#region src/engine.ts
+var VisionEngine = class {
+	cache;
+	config;
+	apiKey;
+	constructor(config) {
+		this.config = config;
+		this.apiKey = resolveApiKey(config);
+		this.cache = new VisionCache(config.cacheMaxSize, config.cacheTtlSeconds);
+	}
+	/**
+	* Whether this backend can be used with the current config.
+	* OpenAI-compatible local endpoints may be keyless, so only Gemini strictly
+	* requires a key; the adapters themselves still surface auth errors when the
+	* selected service rejects a missing/invalid key.
+	*/
+	isConfigured() {
+		if (this.config.provider === "gemini") return this.apiKey.length > 0;
+		if (this.config.provider === "openai") return this.apiKey.length > 0 || this.config.baseUrl.length > 0;
+		return true;
+	}
+	/** Backend identity used in cache keys: provider|baseUrl. */
+	endpointIdentity() {
+		return `${this.config.provider}|${this.config.baseUrl}`;
+	}
+	/**
+	* Run the full vision pipeline on an image source.
+	*
+	* @param imageSource - Local path, URL, or data URI.
+	* @param prompt - The prompt to send with the image.
+	* @param modelOverride - Optional per-call model override.
+	* @param signal - AbortSignal for cancellation.
+	* @returns The vision model's text response.
+	*/
+	async run(imageSource, prompt, modelOverride, signal) {
+		const { base64Data, mimeType } = await parseImageSource(imageSource, {
+			timeoutMs: this.config.requestTimeout,
+			maxBytes: this.config.maxImageDownloadBytes,
+			maxRetries: this.config.maxRetries,
+			retryDelay: this.config.retryDelay,
+			signal
+		});
+		return this.runRaw(base64Data, mimeType, prompt, modelOverride, signal);
+	}
+	/**
+	* Run the vision pipeline on raw base64 data.
+	*
+	* @param base64Data - Base64-encoded image data.
+	* @param mimeType - MIME type of the image.
+	* @param prompt - The prompt to send with the image.
+	* @param modelOverride - Optional per-call model override.
+	* @param signal - AbortSignal for cancellation.
+	* @returns The vision model's text response.
+	*/
+	async runRaw(base64Data, mimeType, prompt, modelOverride, signal) {
+		const [processedData, processedMime] = await preprocessImage(base64Data, mimeType, this.config.maxImageDimension, this.config.jpegQuality);
+		const effectiveModel = modelOverride || this.config.model || "";
+		const cacheKey = VisionCache.computeKey(this.endpointIdentity(), processedData, prompt, effectiveModel);
+		if (this.config.cacheEnabled) {
+			const cached = this.cache.get(cacheKey);
+			if (cached !== void 0) return cached;
+		}
+		const adapter = createVisionAdapter(this.config, this.apiKey, modelOverride);
+		let result;
+		try {
+			result = await adapter.describe(processedData, processedMime, prompt, signal);
+		} catch (error) {
+			if (signal?.aborted) throw error;
+			if (isVisionError(error)) throw error;
+			throw new VisionError("internal", `视觉分析失败：${messageOf(error)}`, {
+				cause: error,
+				context: `${this.config.provider}/${effectiveModel || "(default)"}`
+			});
+		}
+		if (this.config.cacheEnabled) this.cache.set(cacheKey, result);
+		return result;
+	}
+};
+//#endregion
+//#region src/prompts.ts
+/**
+* Default prompts for each vision tool.
+*
+* These prompts are tuned for maximum information extraction from
+* vision models. They can be overridden per-call via tool arguments.
+*/
+const DESCRIBE_PROMPT = `分析这张图片，按以下维度分点描述：
+1. 布局结构：各元素的位置关系和层级
+2. 主要元素：具体列出每个元素及其文字内容
+3. 颜色与样式：背景色、文字色、关键配色
+4. 潜在问题：如有遮挡、重叠、对齐异常、内容缺失等`;
+const OCR_PROMPT = "提取图片中所有文字，保持排版，不加描述。";
+const CLIPBOARD_DESCRIBE_PROMPT = `分析这张截图的内容：画面元素、界面文字、布局结构；如有异常（遮挡、错位、乱码、空白）请指出。`;
+const PASTE_DESCRIBE_PROMPT = `用户粘贴了一张图片。请详细描述图片内容：画面元素、界面文字、布局结构；如有异常（遮挡、错位、乱码、空白）也请指出。你的描述将作为该图片的替代文本提供给纯文本模型，请尽量完整、客观。`;
+const LAYOUT_BASIC_PROMPT = `分析这张 UI 截图的布局结构，返回 JSON。只返回 JSON，不加任何说明文字。
+JSON 格式：
+{"layout_type": "布局类型", "summary": "一句话描述", "elements": [{"type": "元素类型", "text": "文本内容", "position": {"x": 0, "y": 0, "width": 0, "height": 0}, "children": []}]}
+位置坐标用百分比 0-100。元素类型：nav/button/text/image/input/link/icon/card/container/list。`;
+const LAYOUT_DETAILED_EXTRA = `
+额外为元素返回 styles 字段：{"background_color": "#hex", "text_color": "#hex", "font_size": "14px", "border_radius": "8px", "padding": "12px"}。`;
+//#endregion
+//#region src/paste-compat.ts
+/** Marker for the once-only `resolveModelInfo` patch (HMR-safe). */
+const CAPABILITY_PATCH_MARKER = "__deepeye.pasteCompat.capabilityPatch";
+/** One vision-translated image rendered as a text block. */
+const TRANSLATION_TEMPLATE = (index, text) => `[用户粘贴的图片 ${index}（由 DeepEye 视觉模型翻译的内容）：\n${text}\n图片 ${index} 翻译结束]`;
+/** Fallback text when vision translation fails; keeps the session usable. */
+const FALLBACK_TEMPLATE = (index) => `[用户粘贴了一张图片（图片 ${index}），但视觉翻译失败，图片内容不可见。请告知用户当前模型无法直接查看图片，可建议其截图后使用 vision_clipboard 工具分析剪贴板。]`;
+/**
+* Install the `llm/stream` waterfall listener that performs paste-image
+* translation. No-op for requests without image blocks; replayed requests
+* carry only text blocks, so they pass straight through to the adapter.
+*/
+function applyPasteCompat(ctx, config, engine) {
+	const disposers = [];
+	try {
+		const patchDispose = patchTextOnlyCapability(ctx);
+		if (patchDispose === null) {
+			console.warn("[deepeye-vision] paste-compat: resolveModelInfo is already patched by a previous instance; skipping duplicate listener registration.");
+			return () => {};
+		}
+		disposers.push(patchDispose);
+		disposers.push(ctx.on("llm/stream", function(options, next) {
+			return (async function* () {
+				const rewritten = await maybeRewrite(ctx, config, engine, options);
+				if (rewritten === null) {
+					yield* next();
+					return;
+				}
+				yield* ctx.llm.stream(rewritten);
+			})();
+		}));
+	} catch (error) {
+		for (const dispose of [...disposers].reverse()) dispose();
+		throw error;
+	}
+	let disposed = false;
+	return () => {
+		if (disposed) return;
+		disposed = true;
+		for (const dispose of [...disposers].reverse()) dispose();
+	};
+}
+/**
+* Wrap `ctx.llm.resolveModelInfo` so text-only models report their image
+* capability as *unknown* instead of an explicit negative.
+*
+* This is required because the host API gateway (`dsh-host-apiproxy`) rejects
+* image-bearing prompts at admission when the selected model explicitly lacks
+* the `image` input modality (`MODEL_DOES_NOT_SUPPORT_IMAGES`) — before any
+* `llm/stream` listener could translate the image. Treating text-only models
+* as unknown lets the image message reach the session, where the waterfall
+* listener above translates it into text for the text-only adapter.
+*
+* The patch is applied once per runtime instance (marker-guarded for HMR) and
+* only changes the modality *advertisement*, never model routing or request
+* payloads. Image-capable models keep their modalities untouched.
+*/
+function patchTextOnlyCapability(ctx) {
+	const llm = ctx.llm;
+	if (llm === void 0 || typeof llm.resolveModelInfo !== "function") return null;
+	const marker = llm;
+	if (marker[CAPABILITY_PATCH_MARKER] === true) return null;
+	const original = llm.resolveModelInfo.bind(llm);
+	const patched = async (provider, model, signal) => {
+		const info = await original(provider, model, signal);
+		if (info.inputModalities !== void 0 && !info.inputModalities.includes("image")) return {
+			...info,
+			inputModalities: void 0
+		};
+		return info;
+	};
+	llm.resolveModelInfo = patched;
+	marker[CAPABILITY_PATCH_MARKER] = true;
+	return () => {
+		if (llm.resolveModelInfo === patched) llm.resolveModelInfo = original;
+		marker[CAPABILITY_PATCH_MARKER] = false;
+	};
+}
+/**
+* Decide whether and how to rewrite one request.
+*
+* @returns a rewritten request, or null when no rewrite is needed.
+*/
+async function maybeRewrite(ctx, config, engine, options) {
+	if (collectImageBlocks(options).length === 0) return null;
+	if (config.pasteCompat === "auto" && await modelSupportsImages(ctx, options)) return null;
+	const rewrittenMessages = [];
+	let index = 0;
+	for (const message of options.messages) {
+		if (message.role !== "user" || !message.content.some((b) => b.type === "image")) {
+			rewrittenMessages.push(message);
+			continue;
+		}
+		const content = [...message.content];
+		const imageIndexes = message.content.map((block, blockIndex) => block.type === "image" ? blockIndex : -1).filter((blockIndex) => blockIndex >= 0);
+		const startIndex = index;
+		const translations = await Promise.all(imageIndexes.map((blockIndex, offset) => describeImage(ctx, engine, message.content[blockIndex], startIndex + offset + 1, options.signal)));
+		index += imageIndexes.length;
+		for (let i = 0; i < imageIndexes.length; i += 1) content[imageIndexes[i]] = translations[i];
+		rewrittenMessages.push({
+			...message,
+			content
+		});
+	}
+	const rewritten = {
+		...options,
+		messages: rewrittenMessages
+	};
+	if (collectImageBlocks(rewritten).length > 0) {
+		console.warn("[deepeye-vision] paste-compat: request still contains image blocks after rewrite; passing through unchanged to avoid a rewrite loop.");
+		return null;
+	}
+	return rewritten;
+}
+/** Every image block found in user messages, in request order. */
+function collectImageBlocks(options) {
+	const blocks = [];
+	for (const message of options.messages) {
+		if (message.role !== "user") continue;
+		for (const block of message.content) if (block.type === "image") blocks.push(block);
+	}
+	return blocks;
+}
+/**
+* Whether the resolved target model declares image input support.
+*
+* A missing or empty `inputModalities` is treated as unknown/negative
+* capability, so the request is conservatively rewritten rather than risking
+* a text-only adapter rejecting it. Failures to resolve also fall back to
+* rewriting.
+*/
+async function modelSupportsImages(ctx, options) {
+	try {
+		return (await ctx.llm.resolveModelInfo(options.provider, options.model, options.signal)).inputModalities?.includes("image") ?? false;
+	} catch {
+		return false;
+	}
+}
+/** Translate one image attachment into a text block. */
+async function describeImage(ctx, engine, block, index, signal) {
+	try {
+		const stored = await ctx.attachments.readImage(block.attachment, signal);
+		const base64 = Buffer.from(stored.data).toString("base64");
+		if (signal?.aborted) throw signal.reason ?? /* @__PURE__ */ new Error("Aborted");
+		if (!engine.isConfigured()) throw new Error("vision backend is not configured (no API key)");
+		const text = await engine.runRaw(base64, stored.ref.mediaType, PASTE_DESCRIBE_PROMPT, void 0, signal);
+		return {
+			type: "text",
+			text: TRANSLATION_TEMPLATE(index, text)
+		};
+	} catch (error) {
+		if (signal?.aborted) throw error;
+		console.warn("[deepeye-vision] paste-compat: failed to translate pasted image:", error);
+		return {
+			type: "text",
+			text: FALLBACK_TEMPLATE(index)
+		};
+	}
+}
+//#endregion
+//#region src/layout.ts
+/**
+* Robust JSON extraction for layout analysis responses.
+*
+* Vision models often wrap the requested JSON in prose or a markdown fence.
+* This tries, in order: fenced code blocks → the outermost balanced `{…}`
+* region → the first `{…}` span. Only when every candidate fails to parse
+* does it raise a classified `layout` VisionError with a helpful snippet.
+*/
+const SNIPPET_LIMIT = 300;
+/** All fenced code blocks in the response, in order. */
+function fencedCandidates(text) {
+	return [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)].map((m) => m[1].trim()).filter(Boolean);
+}
+/**
+* The outermost balanced `{…}` region of the text, or null.
+* Handles nested braces so the whole object is captured.
+*/
+function outerBracedRegion(text) {
+	const start = text.indexOf("{");
+	if (start < 0) return null;
+	let depth = 0;
+	let inString = false;
+	let escaped = false;
+	for (let i = start; i < text.length; i++) {
+		const ch = text[i];
+		if (inString) {
+			if (escaped) escaped = false;
+			else if (ch === "\\") escaped = true;
+			else if (ch === "\"") inString = false;
+			continue;
+		}
+		if (ch === "\"") inString = true;
+		else if (ch === "{") depth++;
+		else if (ch === "}") {
+			depth--;
+			if (depth === 0) return text.slice(start, i + 1);
+		}
+	}
+	return null;
+}
+/**
+* Extract and parse the layout JSON from a model response.
+*
+* @throws VisionError('layout') when no parseable JSON can be found.
+*/
+function extractLayoutJson(text) {
+	const candidates = [...fencedCandidates(text)];
+	const outer = outerBracedRegion(text);
+	if (outer !== null) candidates.push(outer);
+	for (const candidate of candidates) try {
+		const parsed = JSON.parse(candidate);
+		if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) continue;
+		return parsed;
+	} catch {}
+	const snippet = text.trim().slice(0, SNIPPET_LIMIT);
+	throw new VisionError("layout", `布局分析失败：模型未返回有效的布局 JSON 对象。\n模型原始返回（前 ${SNIPPET_LIMIT} 字）：\n${snippet}`);
+}
+//#endregion
+//#region src/index.ts
+const name = "deepeye-vision";
+const inject = [
+	"tools",
+	"systemPrompt",
+	"llm",
+	"attachments"
+];
+/** Check if image_source looks like a local file path (not URL/data URI). */
+function isLocalPath(source) {
+	return !source.startsWith("data:") && !/^https?:\/\//i.test(source);
+}
+/** Shorten a path for display: keep filename + one parent dir. */
+function shortPath(source) {
+	const parts = source.replace(/\\/g, "/").split("/");
+	return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : source;
+}
+/** Convert a local image source to a filesystem path for UI location display. */
+function locationPath(source) {
+	if (source.startsWith("file://")) try {
+		return fileURLToPath(source);
+	} catch {
+		return source;
+	}
+	return source;
+}
+/** Probe sharp availability exactly once per process (log spam guard). */
+let sharpProbed = false;
+function probeSharp() {
+	if (sharpProbed) return;
+	sharpProbed = true;
+	import("sharp").catch(() => {
+		console.warn("[deepeye-vision] sharp 未安装：图片将不做缩放/JPEG 转换（token 开销更大，且超过模型输入上限时可能失败）。请在插件目录运行 `pnpm install` 安装依赖后重启 dsh。");
+	});
+}
+function applyPlugin(ctx, config, disposers) {
+	const engine = new VisionEngine(config);
+	probeSharp();
+	if (config.pasteCompat !== "off") disposers.push(applyPasteCompat(ctx, config, engine));
+	disposers.push(ctx.systemPrompt.section({
+		name: "deepeye-vision",
+		order: 150,
+		text: () => [
+			"## Vision Capabilities (DeepEye)",
+			"",
+			"You have vision tools available via the DeepEye plugin.",
+			"Use them when the user asks about images, screenshots, UI designs,",
+			"or when visual information would help answer a question.",
+			"",
+			"Available vision tools:",
+			"- `vision_describe` — Describe an image in detail (layout, elements, colors, issues)",
+			"- `vision_ocr` — Extract text from an image (OCR)",
+			"- `vision_ask` — Ask a question about an image",
+			"- `vision_layout` — Structured UI layout analysis (returns JSON)",
+			"- `vision_clipboard` — Analyze the latest clipboard screenshot",
+			"",
+			"Image sources can be: local file paths, http(s) URLs, or base64 data URIs."
+		].join("\n")
+	}));
+	disposers.push(ctx.tools.register(defineTool({
+		name: "vision_describe",
+		description: "Describe the content of an image in detail. Supports local file paths, HTTP(S) URLs, and base64 data URIs.",
+		parameters: {
+			image_source: {
+				type: "string",
+				required: true,
+				description: "Image source: local file path, http(s) URL, or data:image/...;base64,... data URI."
+			},
+			prompt: {
+				type: "string",
+				description: "Optional custom prompt. Defaults to a structured description covering layout, elements, colors, and issues."
+			},
+			model: {
+				type: "string",
+				description: "Optional model name override for this call."
+			}
+		},
+		output: {
+			schema: { type: "string" },
+			render: (_args, value) => [{
+				type: "text",
+				text: value
+			}]
+		},
+		presentCall(args) {
+			return {
+				card: "generic",
+				title: `Describe image: ${shortPath(args.image_source)}`,
+				kind: "read",
+				locations: isLocalPath(args.image_source) ? [{ path: locationPath(args.image_source) }] : void 0
+			};
+		},
+		presentResult(args, result) {
+			return {
+				card: "generic",
+				title: `Image described: ${shortPath(args.image_source)}`,
+				content: result.content
+			};
+		},
+		async execute(args, exec) {
+			const prompt = args.prompt || DESCRIBE_PROMPT;
+			return `图片分析结果：\n${await engine.run(args.image_source, prompt, args.model || void 0, exec.signal)}`;
+		}
+	})));
+	disposers.push(ctx.tools.register(defineTool({
+		name: "vision_ocr",
+		description: "Extract text from an image (OCR). Preserves original layout, adds no commentary.",
+		parameters: {
+			image_source: {
+				type: "string",
+				required: true,
+				description: "Image source: local file path, http(s) URL, or base64 data URI."
+			},
+			language: {
+				type: "string",
+				description: "Recognition language hint. Default \"auto\" for automatic detection."
+			},
+			model: {
+				type: "string",
+				description: "Optional model name override for this call."
+			}
+		},
+		output: {
+			schema: { type: "string" },
+			render: (_args, value) => [{
+				type: "text",
+				text: value
+			}]
+		},
+		presentCall(args) {
+			return {
+				card: "generic",
+				title: `OCR: ${shortPath(args.image_source)}`,
+				kind: "read",
+				locations: isLocalPath(args.image_source) ? [{ path: locationPath(args.image_source) }] : void 0
+			};
+		},
+		presentResult(args, result) {
+			return {
+				card: "generic",
+				title: `OCR extracted: ${shortPath(args.image_source)}`,
+				content: result.content
+			};
+		},
+		async execute(args, exec) {
+			let prompt = OCR_PROMPT;
+			if (args.language && args.language !== "auto") prompt += ` 优先识别语言：${args.language}`;
+			prompt += " 如果图中没有文字，请直接回复：图中未检测到文字。如果图片无法识别，请如实说明。";
+			const result = await engine.run(args.image_source, prompt, args.model || void 0, exec.signal);
+			if (!result.trim()) throw new VisionError("empty", "OCR 未识别到任何文字内容。可确认图片是否包含文字，或换模型（如 glm-4v-flash）重试。");
+			return result;
+		}
+	})));
+	disposers.push(ctx.tools.register(defineTool({
+		name: "vision_ask",
+		description: "Ask a question about an image and get an answer based on its visual content.",
+		parameters: {
+			image_source: {
+				type: "string",
+				required: true,
+				description: "Image source: local file path, http(s) URL, or base64 data URI."
+			},
+			question: {
+				type: "string",
+				required: true,
+				description: "The question to answer about the image."
+			}
+		},
+		output: {
+			schema: { type: "string" },
+			render: (_args, value) => [{
+				type: "text",
+				text: value
+			}]
+		},
+		presentCall(args) {
+			return {
+				card: "generic",
+				title: `Ask: "${args.question.slice(0, 50)}"`,
+				kind: "search",
+				locations: isLocalPath(args.image_source) ? [{ path: locationPath(args.image_source) }] : void 0
+			};
+		},
+		presentResult(args, result) {
+			return {
+				card: "generic",
+				title: `Vision answer: "${args.question.slice(0, 50)}"`,
+				content: result.content
+			};
+		},
+		async execute(args, exec) {
+			const prompt = `根据图片回答：${args.question}`;
+			return engine.run(args.image_source, prompt, void 0, exec.signal);
+		}
+	})));
+	disposers.push(ctx.tools.register(defineTool({
+		name: "vision_layout",
+		description: "Analyze UI screenshot layout structure. Returns JSON with element types, positions, and optional styles. Ideal for frontend recreation.",
+		parameters: {
+			image_source: {
+				type: "string",
+				required: true,
+				description: "Image source: local file path, http(s) URL, or base64 data URI."
+			},
+			detail: {
+				type: "string",
+				description: "Analysis depth: \"basic\" (type+position) or \"detailed\" (adds colors, font sizes, etc). Default \"basic\"."
+			},
+			model: {
+				type: "string",
+				description: "Optional model name override for this call."
+			}
+		},
+		output: {
+			schema: { type: "string" },
+			render: (_args, value) => [{
+				type: "text",
+				text: value
+			}]
+		},
+		presentCall(args) {
+			return {
+				card: "generic",
+				title: `Layout analysis (${args.detail || "basic"}): ${shortPath(args.image_source)}`,
+				kind: "read",
+				locations: isLocalPath(args.image_source) ? [{ path: locationPath(args.image_source) }] : void 0
+			};
+		},
+		presentResult(args, result) {
+			return {
+				card: "generic",
+				title: `Layout JSON: ${shortPath(args.image_source)}`,
+				content: result.content
+			};
+		},
+		async execute(args, exec) {
+			const prompt = (args.detail || "basic") === "detailed" ? LAYOUT_BASIC_PROMPT + LAYOUT_DETAILED_EXTRA : LAYOUT_BASIC_PROMPT;
+			const parsed = extractLayoutJson(await engine.run(args.image_source, prompt, args.model || void 0, exec.signal));
+			return JSON.stringify(parsed, null, 2);
+		}
+	})));
+	disposers.push(ctx.tools.register(defineTool({
+		name: "vision_clipboard",
+		description: "Analyze the latest image in the system clipboard (no paste needed). User takes a screenshot, then this tool analyzes it directly.",
+		parameters: {
+			prompt: {
+				type: "string",
+				description: "Optional analysis prompt. Defaults to screenshot description."
+			},
+			model: {
+				type: "string",
+				description: "Optional model name override for this call."
+			}
+		},
+		output: {
+			schema: { type: "string" },
+			render: (_args, value) => [{
+				type: "text",
+				text: value
+			}]
+		},
+		presentCall() {
+			return {
+				card: "generic",
+				title: "Analyze clipboard screenshot",
+				kind: "read"
+			};
+		},
+		presentResult(_args, result) {
+			return {
+				card: "generic",
+				title: "Clipboard analysis result",
+				content: result.content
+			};
+		},
+		async execute(args, exec) {
+			const snapshot = await grabClipboardImage(exec.signal);
+			if (snapshot.kind === "empty") return "剪贴板中没有图片。请先截图（如 Win+Shift+S 会自动复制到剪贴板）或复制一张图片后再试。";
+			if (snapshot.kind === "text") return `剪贴板中当前是文本而不是图片，本工具无法分析：${JSON.stringify(snapshot.textPreview)}…\n请先截图（如 Win+Shift+S）或用含图片的剪贴板内容，再调用本工具。`;
+			if (snapshot.kind === "error") return `读取剪贴板失败：${snapshot.detail} 请确认系统剪贴板可用后重试。`;
+			const prompt = args.prompt || CLIPBOARD_DESCRIBE_PROMPT;
+			return `剪贴板图片分析结果：\n${await engine.runRaw(snapshot.base64, "image/png", prompt, args.model || void 0, exec.signal)}`;
+		}
+	})));
+	let disposed = false;
+	return () => {
+		if (disposed) return;
+		disposed = true;
+		for (const dispose of [...disposers].reverse()) dispose();
+	};
+}
+/**
+* Public Cordis entry point.
+*
+* If plugin setup fails part-way through, already-registered effects are
+* rolled back so a later reload/retry does not start from a half-initialized
+* plugin state.
+*/
+function apply(ctx, config) {
+	const disposers = [];
+	try {
+		return applyPlugin(ctx, config, disposers);
+	} catch (error) {
+		for (const dispose of [...disposers].reverse()) dispose();
+		throw error;
+	}
+}
+/** PowerShell script that reports clipboard content with a kind prefix. */
+const CLIPBOARD_PROBE_SCRIPT = `
+Add-Type -AssemblyName System.Windows.Forms
+$img = [System.Windows.Forms.Clipboard]::GetImage()
+if ($img -ne $null) {
+  $ms = New-Object System.IO.MemoryStream
+  $img.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+  Write-Output ("IMG:" + [Convert]::ToBase64String($ms.ToArray()))
+} else {
+  $txt = [System.Windows.Forms.Clipboard]::GetText()
+  if ($txt -ne $null -and $txt.Length -gt 0) {
+    $p = $txt.Substring(0, [Math]::Min(60, $txt.Length)) -replace "[\\r\\n]+", " "
+    Write-Output ("TXT:" + $p)
+  } else {
+    Write-Output "NONE"
+  }
+}`;
+/**
+* Run the clipboard probe as an async child process.
+*
+* Uses `-EncodedCommand` (UTF-16LE base64) so the inline script needs no
+* shell-quoting; spawns instead of execSync so the host event loop is never
+* blocked, and honors the tool's AbortSignal for true cancellation.
+*/
+function runClipboardProbe(signal, timeoutMs = 1e4) {
+	return new Promise((resolve, reject) => {
+		const encoded = Buffer.from(CLIPBOARD_PROBE_SCRIPT, "utf16le").toString("base64");
+		const child = spawn("powershell", [
+			"-NoProfile",
+			"-Sta",
+			"-EncodedCommand",
+			encoded
+		], {
+			windowsHide: true,
+			stdio: [
+				"ignore",
+				"pipe",
+				"pipe"
+			]
+		});
+		let stdout = "";
+		let stderr = "";
+		let settled = false;
+		child.stdout.on("data", (chunk) => {
+			stdout += chunk;
+		});
+		child.stderr.on("data", (chunk) => {
+			stderr += chunk;
+		});
+		const finish = (fn) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			signal?.removeEventListener("abort", onAbort);
+			fn();
+		};
+		const timer = setTimeout(() => {
+			child.kill();
+			finish(() => reject(/* @__PURE__ */ new Error(`读取剪贴板超时（${timeoutMs}ms）`)));
+		}, timeoutMs);
+		const onAbort = () => {
+			child.kill();
+			finish(() => reject(signal?.reason ?? /* @__PURE__ */ new Error("剪贴板读取已取消")));
+		};
+		if (signal) {
+			if (signal.aborted) {
+				child.kill();
+				finish(() => reject(signal.reason ?? /* @__PURE__ */ new Error("剪贴板读取已取消")));
+				return;
+			}
+			signal.addEventListener("abort", onAbort, { once: true });
+		}
+		child.on("error", (error) => finish(() => reject(error)));
+		child.on("close", (code) => {
+			if (code === 0) finish(() => resolve(stdout.trim()));
+			else finish(() => reject(new Error(stderr.trim() || `读取剪贴板失败（退出码 ${code}）`)));
+		});
+	});
+}
+/**
+* Grab an image from the system clipboard (Windows).
+*
+* Non-blocking and cancellable: spawns a PowerShell probe and resolves with a
+* classified snapshot (image / text / empty / error). On other platforms it
+* reports an unsupported error instead of silently returning null.
+*/
+async function grabClipboardImage(signal) {
+	if (process.platform !== "win32") return {
+		kind: "error",
+		detail: "当前平台不支持剪贴板读取（仅 Windows）。"
+	};
+	let output;
+	try {
+		output = await runClipboardProbe(signal);
+	} catch (error) {
+		if (signal?.aborted) throw error;
+		return {
+			kind: "error",
+			detail: messageOf(error)
+		};
+	}
+	const firstLine = output.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0] ?? "";
+	if (firstLine.startsWith("IMG:")) {
+		const base64 = firstLine.slice(4).trim();
+		if (base64) return {
+			kind: "image",
+			base64
+		};
+		return {
+			kind: "error",
+			detail: "剪贴板图片读取为空。"
+		};
+	}
+	if (firstLine.startsWith("TXT:")) return {
+		kind: "text",
+		textPreview: firstLine.slice(4).trim()
+	};
+	return { kind: "empty" };
+}
+//#endregion
+export { Config, apply, applyPasteCompat, inject, name };
