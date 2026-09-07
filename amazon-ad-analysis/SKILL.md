@@ -115,7 +115,13 @@ Phase 7  归档：Markdown + Excel + 操作跟踪；路径/链接按配置生成
 
 ---
 
-### Phase 1：数据导入与清洗
+## Phase 0：需求澄清（问卷）
+
+必做，最先执行：按 `references/phase0-questionnaire.md` 的 8 问合并为一次提问（分类标准/优化潜力/推广范围/页面处理/周趋势/优先ASIN/Listing抓取/输出路径），产出口径确认摘要写入报告头部。详见该问卷文件与全局决策树第 0 条。
+
+---
+
+## Phase 1：数据导入与清洗
 
 **输入**：用户上传Excel文件（日度数据）
 - **完整输入（推荐）**：4个文件
@@ -156,7 +162,7 @@ Phase 7  归档：Markdown + Excel + 操作跟踪；路径/链接按配置生成
 
 ---
 
-### Phase 2：全店总览（全店视角）
+## Phase 2：全店总览（全店视角）
 
 #### A. 整体健康度仪表盘
 
@@ -210,7 +216,23 @@ Phase 7  归档：Markdown + Excel + 操作跟踪；路径/链接按配置生成
 - W4 ACOS < W3 ACOS → 效率改善
 - W4 ACOS > W3 ACOS → 效率恶化
 
-#### C. ASIN排名矩阵（五档定位）
+#### C. 广告结构分析
+
+分析各广告类型的效率：
+- SP（Sponsored Products）：花费占比、ACOS、订单占比
+- SB（Sponsored Brands）：花费占比、ACOS、品牌新客获取
+- SBV（Sponsored Brands Video）：VTR、vCTR、转化效果
+- SD（Sponsored Display）：再营销效果、受众覆盖
+
+**输出**：Markdown总结报告 + Excel可视化文件（见 Phase 7 文件生成）
+
+---
+
+## Phase 3：产品定位分类（五档定位 + 优化潜力）
+
+3A=ASIN五档定位（下表）；3B=优化潜力评估（`references/optimization-potential.md`）；3C=产出优先ASIN清单（= 问题 + 潜力 + 用户指定），作为 Phase 4 并行批次的触发输入。
+
+#### A. ASIN排名矩阵（五档定位）
 
 按销量、ACOS、转化率、优化潜力多维分类（潜力评估详见 `references/optimization-potential.md`）：
 
@@ -230,19 +252,9 @@ Phase 7  归档：Markdown + Excel + 操作跟踪；路径/链接按配置生成
 - 转化率维度：CVR 高于/低于店铺平均
 - **优化潜力**：按 `references/optimization-potential.md` 的 6 判据 + 反证清单判定（命中 ≥2 判据且无反证 → 潜力组）
 
-#### D. 广告结构分析
-
-分析各广告类型的效率：
-- SP（Sponsored Products）：花费占比、ACOS、订单占比
-- SB（Sponsored Brands）：花费占比、ACOS、品牌新客获取
-- SBV（Sponsored Brands Video）：VTR、vCTR、转化效果
-- SD（Sponsored Display）：再营销效果、受众覆盖
-
-**输出**：Markdown总结报告 + Excel可视化文件（见 Phase 7 文件生成）
-
 ---
 
-### Phase 4/5：ASIN 深挖（单品视角）
+## Phase 4：ASIN 深挖·并行批次（单品视角）
 
 **触发条件**：Phase 3C 产出的优先ASIN清单（问题 + 潜力 + 用户指定）。4A/4B/4C 并行执行。
 
@@ -326,7 +338,13 @@ listing_data = {
 
 **注意**：搜索词文件是广告表现的下钻，不是独立数据源。搜索词的花费总和应接近广告表现文件的SP花费。
 
-##### 5.1 词根表现汇总（词根可重叠统计）
+---
+
+## Phase 5：关键词归因分析（依赖 4A+4C）
+
+5.1=词根表现汇总（依赖 4C）；5.2=否定词清单（依赖 4C）；5.3=关键词覆盖分析（依赖 4A+4C）。
+
+#### 5.1 词根表现汇总（词根可重叠统计）
 
 **目的**：从搜索词中提取核心词根，按词根维度聚合表现数据，识别高效词根和低效词根。
 
@@ -389,7 +407,7 @@ listing_data = {
 | W3+W4 均无订单 且 花费 > $5 | 浪费词根，建议否定 |
 | 趋势为 WORSENING 且 W4 ACOS > 35% | 升级关注，优先优化 |
 
-##### 5.2 词组否定执行清单
+#### 5.2 词组否定执行清单
 
 **目的**：从搜索词数据中自动生成可直接执行的否定关键词清单。
 
@@ -443,7 +461,7 @@ listing_data = {
 
 脚本支持的品类配置：`usb_hub`, `electronics`, `home`, `custom`；品类组合词根在 `config/analysis_config.yaml` → `categories` 中维护。v1 脚本 `analysis.py` 已废弃，勿再引用。
 
-##### 5.3 关键词覆盖分析（前台 Listing × 搜索词交叉验证）
+#### 5.3 关键词覆盖分析（前台 Listing × 搜索词交叉验证）
 
 **目的**：将搜索词报告中的核心词根与前台 Listing 内容进行交叉比对，找出关键词覆盖缺口，给出 Listing 优化建议。
 
@@ -451,7 +469,7 @@ listing_data = {
 
 **分析流程**：
 ```
-1. 从搜索词报告中提取核心词根（使用 4C 词根分析结果，即 5.1 输出）
+1. 从搜索词报告中提取核心词根（使用 5.1 词根汇总输出；原始数据来自 4C 搜索词聚合）
 2. 从 4A 抓取的 Listing 数据中提取所有关键词
    - 标题关键词（权重最高）
    - 五点关键词（权重高）
@@ -538,12 +556,12 @@ listing_data = {
 `listing.json` 格式：由 4A 前台抓取生成（三档降级后结构一致），包含 `title`, `bullets`, `description`, `aplus` 等字段；`scrape_mode` 注明抓取档位。
 
 **使用说明**：
-1. 将 4C 词根汇总结果和 4A Listing 数据传入 `analyze_keyword_coverage()`
+1. 将 5.1 词根汇总结果（由 4C 聚合数据生成）和 4A Listing 数据传入 `analyze_keyword_coverage()`
 2. 函数会自动检测每个词根在 Listing 各区块的覆盖情况
 3. 根据覆盖状态和搜索词表现自动生成优化建议
 4. 注意：完全匹配和子集匹配两种方式都支持（如 "usb 3.0 hub" 会匹配标题中包含这三个词的情况）
 
-### Phase 6：推广计划与策略制定
+## Phase 6：推广计划与策略制定
 
 #### D. 销售情况评估（基于产品表现日度数据的W4最新数据）
 
@@ -693,7 +711,7 @@ ACOS = CPC ÷ (CVR × 客单价)
 
 ---
 
-### Phase 7：归档与跟踪
+## Phase 7：归档与跟踪
 
 #### 强制检查清单（每次分析必须完成）
 
