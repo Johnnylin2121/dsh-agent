@@ -4,7 +4,7 @@
 
 所有领域记忆文件使用**统一 frontmatter 元数据**（跨域检索用），body 按领域差异化。
 文件命名：`YYYY-MM-DD-<领域>-<简述>.md`
-存放路径：`D:/OneDrive/ObsidianVault/<领域目录>/`
+存放路径：`{VAULT_PATH}/<领域目录>/`
 
 ---
 
@@ -231,7 +231,7 @@ confidence: medium
 ## 文件目录结构总览
 
 ```
-D:/OneDrive/ObsidianVault/
+{VAULT_PATH}/
 ├── 交易体系/
 │   ├── 每日复盘/          ← 已有
 │   ├── 盘前预测/          ← 已有

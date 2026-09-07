@@ -1,6 +1,6 @@
 ---
 name: trading-daily-review
-description: A股每日复盘工作流——涵盖盘前观察清单制定、盘中实时验证、盘后完整复盘的全流程。包括数据获取（东方财富API/cn-financial-mcp）、本地文件记录、Obsidian归档、连贯性验证、假设检验、交易计划审查。当用户要求做复盘、盘中验证、制定观察清单、审查交易计划时使用此skill。
+description: A股每日复盘工作流——涵盖盘前观察清单制定、盘中实时验证、盘后完整复盘的全流程。包括数据获取（东方财富API/多源交叉）、本地文件记录、Obsidian归档、连贯性验证、假设检验、交易计划审查。当用户要求做复盘、盘中验证、制定观察清单、审查交易计划时使用此skill。
 ---
 
 # 每日复盘工作流
@@ -70,10 +70,10 @@ description: A股每日复盘工作流——涵盖盘前观察清单制定、盘
 ### 阶段一：盘前准备（9:00前）
 
 **前置步骤：时间校验**
-```bash
+```powershell
 # 获取当前日期，确认交易日
-date "+%Y-%m-%d %A"
-# 确认前一交易日、前二交易日日期
+Get-Date -Format 'yyyy-MM-dd dddd'
+# 确认前一交易日、前二交易日日期（遇节假日回溯）
 ```
 
 **输入**：
@@ -124,9 +124,9 @@ date "+%Y-%m-%d %A"
 ```
 
 **数据获取方式（本机 curl/HTTPS 不可用，统一走 node-fetch 行情工具）**：
-```bash
+```powershell
 # 行情工具路径（node 内置 OpenSSL，绕开 schannel 故障）
-MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+$MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
 
 # 指数行情（上证/深成/创业板/沪深300/科创50）
 node "$MK" index
@@ -147,7 +147,7 @@ node "$MK" kline "SH600519" 101 120
 node "$MK" sina "nf_CU0,nf_AL0,nf_AO0,nf_RU0,hf_OIL,hf_CL,nf_L0,nf_PP0"
 node "$MK" stocks "101.GC00Y,101.HG00Y,101.SI00Y"   # COMEX金/铜/银
 ```
-> ⚠️ **为什么不用 curl**：本机 Windows schannel 出站 TLS 已损坏（`SEC_E_NO_CREDENTIALS`），任何 curl/Invoke-WebRequest 的 HTTPS 都失败；`dsh-market.mjs` 用 node.fetch（OpenSSL）正常。若日后 schannel 修复，仍可回退到 curl 写法。
+> ⚠️ schannel/curl 不可用原因与 `dsh-market.mjs` 用法：见顶部「数据多源校验」权威节，不在此重复。
 
 **持仓商品锚核验表**（盘前固定环节，锚点数值以各标的操作规则活文档为准，勿写死；2026-08-26 起）：
 
@@ -218,13 +218,15 @@ node "$MK" stocks "101.GC00Y,101.HG00Y,101.SI00Y"   # COMEX金/铜/银
 
 ### 阶段三：盘后复盘（15:00后）
 
-**前置步骤：时间校验**
-```bash
+**前置步骤：时间校验 + 记忆检索**
+```powershell
 # 获取当前日期，确认今日为交易日
-date "+%Y-%m-%d %A"
-# 确认前一交易日、前二交易日日期
+Get-Date -Format 'yyyy-MM-dd dddd'
+# 确认前一交易日、前二交易日日期（遇节假日回溯）
 # 如前一交易日无复盘文件，继续向前追溯直到找到两个有效复盘文件
 ```
+
+> **入口**：用 domain-memory 检索 trading 域相关记忆（交易记忆/操作规则），避免重复踩坑。
 
 **输入**：
 - 当日完整交易数据
@@ -235,6 +237,7 @@ date "+%Y-%m-%d %A"
 **输出**：
 - 更新前日复盘的"今日验证"章节
 - 创建当日复盘文件（包含"前日复盘回顾"章节，关联前两个交易日）
+- **矛盾检测**：运行 trading-contradiction-check 四维矛盾检测，结果嵌入当日复盘「矛盾检测」板块
 - **审查所有交易计划**：复盘完成后，检查每个交易计划的前提是否因当日行情而改变
 
 **关键规则**：
@@ -252,11 +255,11 @@ date "+%Y-%m-%d %A"
 
 **复盘后归档检查**：
 创建当日复盘文件后，检查 `交易体系/每日复盘/` 目录，将超过前两个交易日的复盘文件移入 `存档/` 子目录。主目录仅保留今日、前日、前前日三个交易日的复盘文件。
-```bash
+```powershell
 # 获取目录中所有复盘文件，按日期排序
-ls "{VAULT_PATH}/交易体系/每日复盘/"*.md | sort
+Get-ChildItem "{VAULT_PATH}/交易体系/每日复盘/"*.md | Sort-Object Name
 # 将早于前前日的文件移入存档
-mv "{VAULT_PATH}/交易体系/每日复盘/YYYY-MM-DD 每日复盘.md" "{VAULT_PATH}/交易体系/每日复盘/存档/"
+Move-Item "{VAULT_PATH}/交易体系/每日复盘/YYYY-MM-DD 每日复盘.md" "{VAULT_PATH}/交易体系/每日复盘/存档/"
 ```
 
 **复盘后记忆提炼（第5步，必做）**：
@@ -269,7 +272,7 @@ mv "{VAULT_PATH}/交易体系/每日复盘/YYYY-MM-DD 每日复盘.md" "{VAULT_P
    - 新教训：预判重大错误或重大正确（confidence 评估）
 2. **执行**：
    - 新主题 → 创建 `YYYY-MM-DD-交易记忆-主题.md`（格式见下）
-   - 既有主题计数 → 编辑更新（如"科技硬件五次二日游"），不重复新建
+   - 既有主题计数 → 编辑更新（写法：frontmatter 计数/日期用 obsidian_set_property；正文先 obsidian_read，再 obsidian_write 全量重写或 obsidian_append 追加）（如"科技硬件五次二日游"），不重复新建
 3. **格式**（domain-memory，与 obsidian-reconcile/domain-memory skill 兼容）：
 ```markdown
 ---
@@ -416,12 +419,12 @@ related: ["[[前日复盘1]]", "[[前日复盘2]]", "[[Mr.dang交易体系大纲
 
 ## 数据获取备忘
 
-> ⚠️ **本机 HTTPS 现状**：Windows schannel 出站 TLS 损坏（`SEC_E_NO_CREDENTIALS`），**curl / Invoke-WebRequest 全部不可用**；取数统一用 `dsh-market.mjs`（node.fetch/OpenSSL，已验证可用）。
+> ⚠️ schannel/curl 不可用原因与工具用法：见顶部「数据多源校验」权威节。
 
 ### 行情工具（推荐，统一入口）
 
-```bash
-MK="$HOME/.dsh/skills/_shared/dsh-market.mjs"
+```powershell
+$MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
 node "$MK" index                        # 指数（上证/深成/创业板/沪深300/科创50）
 node "$MK" stocks "1.600000,0.000001"   # 个股行情（沪1. / 深0.）
 node "$MK" sector 20                    # 板块资金流向（前20，按主力净流入）
@@ -454,15 +457,7 @@ https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f62,f184,f12,f14&s
 
 ### cn-financial-mcp 工具
 
-> ⚠️ 若当前环境未配置此 MCP Server，**忽略本节**（以 `dsh-market.mjs` + `xueqiu_*` 为准），勿引用其接口。
-
-如已配置MCP Server，可直接调用：
-- `get_market_overview()` — 指数概览
-- `get_sector_fund_flow()` — 板块资金流向
-- `get_money_flow(symbol)` — 个股资金流向
-- `get_limit_up_down()` — 涨跌停池
-- `get_north_bound_flow()` — 北向资金
-- `get_macro_cpi()` / `get_macro_pmi()` — 宏观数据
+cn-financial-mcp 未安装；无此 MCP 时跳过本节，以 `dsh-market.mjs` + `xueqiu_*` 为准。
 
 ---
 
@@ -470,7 +465,7 @@ https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f62,f184,f12,f14&s
 
 **当前模式**：以本地文件为主（`交易体系/盘前预测/`），Notion作为可选同步目标。
 
-**Token**：存储在项目MEMORY.md中（Notion API token）
+**Token**：环境变量 `NOTION_TOKEN`。守卫：若 `$env:NOTION_TOKEN` 未设置 → 跳过写入，并在报告中注明「未同步 Notion」。
 
 **数据库ID**：
 - 交易复盘：`33d6ad56-d6ed-8024-bdaf-c20be371ce09`
@@ -479,21 +474,9 @@ https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f62,f184,f12,f14&s
 - 观察清单：搜索页面标题获取
 - 操作策略：搜索页面标题获取
 
-**jq + curl 写入方式**（避免 JSON 编码问题）：
-```bash
-# 构建 JSON
-jq -n '{
-  children: [
-    {object: "block", type: "heading_2", heading_2: {rich_text: [{type: "text", text: {content: "{日期} 复盘"}}]}},
-    {object: "block", type: "paragraph", paragraph: {rich_text: [{type: "text", text: {content: "复盘内容..."}}]}}
-  ]
-}' > /tmp/notion_blocks.json
-
-curl -s -X PATCH "https://api.notion.com/v1/blocks/{block_id}/children" /
-  -H "Authorization: Bearer $NOTION_TOKEN" /
-  -H "Notion-Version: 2022-06-28" /
-  -H "Content-Type: application/json" /
-  -d @/tmp/notion_blocks.json
+**node fetch POST 写入方式**（node 全局 fetch 走 OpenSSL，不经 schannel；JSON 内联无需 jq）：
+```powershell
+node -e "fetch('https://api.notion.com/v1/blocks/{block_id}/children',{method:'PATCH',headers:{'Authorization':'Bearer '+process.env.NOTION_TOKEN,'Notion-Version':'2022-06-28','Content-Type':'application/json'},body:JSON.stringify({children:[{object:'block',type:'heading_2',heading_2:{rich_text:[{type:'text',text:{content:'{日期} 复盘'}}]}}]})}).then(r=>r.json()).then(j=>console.log(JSON.stringify(j).slice(0,500)))"
 ```
 
 ---
@@ -566,10 +549,10 @@ curl -s -X PATCH "https://api.notion.com/v1/blocks/{block_id}/children" /
 1. **时间混淆**：Notion API返回UTC时间，需+8小时转换为东八区
 2. **盘中验证写错位置**：一律写入当日独立文件（`盘中验证/YYYY-MM-DD 盘中验证.md`，铁律 7）；次日复盘"今日验证"引用该文件形成闭环——**不得直接写入前日复盘**
 3. **图片占位符**：markitdown转换会生成`![](data:image/jpeg;base64...)`，需清理
-4. **JSON编码**：使用 `jq` 构建 Notion API 请求体，不要手动拼接 JSON 字符串
+4. **JSON编码**：Notion 请求体用 node 的 `JSON.stringify` 构建（见 Notion 集成节的 node fetch 示例），不要手动拼接 JSON 字符串
 5. **复盘中关联交易计划**：复盘只分析市场，不关联持仓。交易计划的审查在复盘完成后独立进行
 6. **盘中临时修改交易计划**：交易计划一旦制定，盘中只执行不修改。修改只能在盘后审查时进行
-7. **交易计划制定无人工参与**：MiMo可以提醒有介入机会，但交易计划必须经用户确认后才创建
+7. **交易计划制定无人工参与**：agent 可以提醒有介入机会，但交易计划必须经用户确认后才创建
 8. **前日复盘只追溯一天**：必须关联前两个交易日的复盘文件，如某日无复盘文件则继续向前追溯
 9. **日期错误**：每个阶段开始前必须先获取当前日期，确认今日、前一交易日、前二交易日
 10. **归档遗漏**（8/24 实案）：盘前预测生成后必须立即执行 v2.2 三目录归档（步骤 6），盘中验证/盘前预测当日文件次日盘前归档；复盘按三日窗口归档

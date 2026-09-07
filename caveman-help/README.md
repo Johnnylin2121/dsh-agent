@@ -26,7 +26,6 @@ Modes:
 Skills:
   /caveman-commit       terse Conventional Commits
   /caveman-review       one-line PR comments
-  /caveman-stats        session token savings
 
 Deactivate:
   "stop caveman" or "normal mode"
@@ -35,4 +34,4 @@ Deactivate:
 ## See also
 
 - [`SKILL.md`](./SKILL.md) — full reference card
-- [Caveman README](../../README.md) — repo overview
+- [Caveman README](https://github.com/JuliusBrussee/caveman#readme) — repo overview

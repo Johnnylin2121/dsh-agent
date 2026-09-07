@@ -371,7 +371,7 @@ listing_data = {
 | ACOS > 100% 且 花费 > $10 | 亏损词根，优先否定 |
 | 有花费无订单 且 花费 > $5 | 浪费词根，建议否定 |
 
-**输出表格格式**（含周趋势）：
+**输出表格格式**（含周趋势；⚠️ 周趋势列 W1-W4 由 agent 另行聚合，`analysis_v2.py` 不产出）：
 
 | 词根/意图 | 搜索词数 | 花费 | 订单 | 销售额 | CVR | ACOS | W1_ACOS | W2_ACOS | W3_ACOS | W4_ACOS | W1_Ord | W2_Ord | W3_Ord | W4_Ord | 趋势 | 执行建议 |
 |-----------|---------|------|------|--------|-----|------|---------|---------|---------|---------|--------|--------|--------|--------|------|----------|
@@ -386,7 +386,7 @@ listing_data = {
 | W4 ACOS 35-50% 且 W4 订单 >= 3 | 待优化词根，降低出价或优化匹配 |
 | W4 ACOS > 50% 且 W4 订单 >= 3 | 低效词根，考虑否定或大幅降低出价 |
 | W4 ACOS > 100% 且 W4 花费 > $10 | 亏损词根，优先否定 |
-| W3+W4 均无订单 且 花费 > $3 | 浪费词根，建议否定 |
+| W3+W4 均无订单 且 花费 > $5 | 浪费词根，建议否定 |
 | 趋势为 WORSENING 且 W4 ACOS > 35% | 升级关注，优先优化 |
 
 ##### 5.2 词组否定执行清单
@@ -396,7 +396,7 @@ listing_data = {
 **否定词根识别规则**（基于W4最新数据 + 周趋势）：
 
 1. **高ACOS否定**：W4 ACOS > 100% 且 W4 花费 > $10 的搜索词对应的词根
-2. **有花费无订单否定**：W3+W4 均无订单 且 花费 > $3 的搜索词对应的词根
+2. **有花费无订单否定**：W3+W4 均无订单 且 花费 > $5 的搜索词对应的词根
 3. **竞品ASIN否定**：搜索词中出现的非自家ASIN（验证规则：ASIN不在产品表现汇总文件中）
 4. **持续低效否定**：W2/W3/W4 连续两个周期ACOS > 50% 的词根
 5. **趋势恶化否定**：W4 ACOS > W3 ACOS 且 W4 ACOS > 100% 的词根（升级优先级）
@@ -417,7 +417,7 @@ listing_data = {
 | P1-高 | W4 ACOS>100% 且 W4 花费>$10 | 今天 |
 | P2-中 | W4 ACOS>50% 且 W4 花费>$5 | 3天内 |
 | P2-中 | W4 ACOS>W3 ACOS 且 W4 ACOS>100%（趋势恶化） | 3天内 |
-| P3-低 | W3+W4 均无订单 且 花费>$3 | 7天内 |
+| P3-低 | W3+W4 均无订单 且 花费>$5 | 7天内 |
 
 **否定理由模板**：
 - 高ACOS："{词根} ACOS {百分比}%，花费${金额}仅{订单}单，持续亏损"
@@ -433,12 +433,12 @@ listing_data = {
 
 **执行方式**：使用 `scripts/analysis_v2.py` 脚本（Windows 下用 config 中 `environment.python_windows` 指定的解释器）
 
-```bash
-# 词根分析（v2）
-python scripts/analysis_v2.py roots --input search_terms.xlsx --output roots.xlsx --category usb_hub --top-n 50
+```powershell
+# ⚠️ 必须用 config environment.python_windows 指定的解释器；本机裸 python 指向无 pandas 的 venv
+& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' scripts\analysis_v2.py roots --input search_terms.xlsx --output roots.xlsx --category usb_hub --top-n 50
 
 # 否定词清单（v2）
-python scripts/analysis_v2.py negations --input search_terms.xlsx --output negations.xlsx --category usb_hub
+& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' scripts\analysis_v2.py negations --input search_terms.xlsx --output negations.xlsx --category usb_hub
 ```
 
 脚本支持的品类配置：`usb_hub`, `electronics`, `home`, `custom`；品类组合词根在 `config/analysis_config.yaml` → `categories` 中维护。v1 脚本 `analysis.py` 已废弃，勿再引用。
@@ -494,9 +494,9 @@ python scripts/analysis_v2.py negations --input search_terms.xlsx --output negat
 
 | 场景 | 前台状态 | 搜索词表现 | 建议 | 原因模板 |
 |------|---------|-----------|------|---------|
-| 高效词未覆盖 | ❌ 未出现在任何区块 | ACOS<25% 且 订单>=3 | **建议加入标题或五点** | "{词根} 是核心盈利词根(ACOS {百分比}%)，但未出现在前台Listing中，建议加入{位置}以提升相关性和排名" |
-| 高效词低权重覆盖 | ✅ 仅在描述中 | ACOS<25% 且 订单>=3 | **建议提升到标题或五点** | "{词根} 当前仅在描述中出现，作为盈利词根(ACOS {百分比}%)应提升到{位置}以获得更高权重" |
-| 高效词已高权重覆盖 | ✅ 在标题或五点中 | ACOS<25% 且 订单>=3 | **维持现状** | "{词根} 已在{位置}中覆盖，表现良好，维持现有布局" |
+| 高效词未覆盖 | ❌ 未出现在任何区块 | ACOS<20% 且 订单>=3 | **建议加入标题或五点** | "{词根} 是核心盈利词根(ACOS {百分比}%)，但未出现在前台Listing中，建议加入{位置}以提升相关性和排名" |
+| 高效词低权重覆盖 | ✅ 仅在描述中 | ACOS<20% 且 订单>=3 | **建议提升到标题或五点** | "{词根} 当前仅在描述中出现，作为盈利词根(ACOS {百分比}%)应提升到{位置}以获得更高权重" |
+| 高效词已高权重覆盖 | ✅ 在标题或五点中 | ACOS<20% 且 订单>=3 | **维持现状** | "{词根} 已在{位置}中覆盖，表现良好，维持现有布局" |
 | 低效词高权重覆盖 | ✅ 在标题中 | ACOS>50% 且 订单<3 | **评估是否替换** | "{词根} 在标题中但ACOS高达{百分比}%，如有更优词可考虑替换，但需评估替换风险" |
 | 竞品词覆盖 | ✅ 在标题中 | 竞品ASIN词 | **建议移除竞品词** | "{词根} 是竞品ASIN词，在标题中可能引来竞品流量而非目标客户" |
 | 品牌词覆盖 | ✅ 在标题中 | 品牌词 ACOS<20% | **维持现状** | "{词根} 是品牌词，表现优秀，保护品牌词位置" |
@@ -530,9 +530,9 @@ python scripts/analysis_v2.py negations --input search_terms.xlsx --output negat
 
 **执行方式**：使用 `scripts/analysis_v2.py` 脚本（v2；config 中 `environment.python_windows` 指定解释器）
 
-```bash
-# 关键词覆盖分析（v2）
-python scripts/analysis_v2.py coverage --input search_terms.xlsx --listing listing.json --output coverage.xlsx
+```powershell
+# 关键词覆盖分析（v2；解释器同上，必须用 config environment.python_windows）
+& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' scripts\analysis_v2.py coverage --input search_terms.xlsx --listing listing.json --output coverage.xlsx
 ```
 
 `listing.json` 格式：由 4A 前台抓取生成（三档降级后结构一致），包含 `title`, `bullets`, `description`, `aplus` 等字段；`scrape_mode` 注明抓取档位。
@@ -996,7 +996,7 @@ ACOS = CPC ÷ (CVR × 客单价)
 | 文件 | 用途 |
 |------|------|
 | `scripts/analysis_v2.py` | 可执行脚本（v2，推荐）：词根分析、否定词生成、关键词覆盖分析、数据清洗、数据验证；Windows 用 `config → environment.python_windows` 指定解释器 |
-| `scripts/analysis.py` | **已废弃**（v1），仅向后兼容，新分析勿用 |
+| `scripts/archive/analysis.py` | **已废弃**（v1，已归档），新分析勿用 |
 | `config/analysis_config.yaml` | **阈值唯一来源** + 列名映射 + 品类配置 + 输出路径 |
 | `references/metrics-glossary.md` | 指标定义与健康标准（阈值只引用 config，不另行定义） |
 | `references/diagnosis-rules.md` | 问题诊断规则库（20条规则） |
@@ -1007,67 +1007,4 @@ ACOS = CPC ÷ (CVR × 客单价)
 
 ---
 
-## 附录B：核心诊断规则速查
-
-> 详细版规则见 `references/diagnosis-rules.md`（20条规则）。以下为快速查阅版本。
-
-### B.1 销售情况判断
-
-| 维度 | 差 | 好 |
-|------|-----|-----|
-| 销量趋势 | 环比下降>10% | 环比增长或持平 |
-| 订单量 | 低于店铺平均 | 高于店铺平均 |
-| 广告占比 | >60% 或 <20% | 20-60% |
-
-判断：3维度中2个"差"→销售差，2个"好"→销售好。
-
-### B.2 优化难度判断
-
-| 维度 | 低（易优化） | 高（难优化） |
-|------|-------------|-------------|
-| ACOS | <40%，有优化空间 | >50%，结构性问题 |
-| CVR | 低于店铺均值 | 正常或高于均值 |
-| CPC | 高于均值，可调整 | 已是最低水平 |
-| 搜索词 | 有高ACOS词可否定 | 词本身竞争激烈 |
-| 广告结构 | 单一，可调整 | 已较完善 |
-
-判断：5维度中3个"低"→容易，3个"高"→困难。
-
-### B.3 策略矩阵
-
-| 销售情况 | 优化难度 | 策略方向 | 方案重点 |
-|----------|----------|----------|----------|
-| 差 | 低 | 进攻型 | 快速止血、精准提效、Listing优化 |
-| 差 | 高 | 防守型 | 控制亏损、维护核心词、等待时机 |
-| 好 | 低 | 优化型 | 效率提升、利润释放、精准投放 |
-| 好 | 高 | 巩固型 | 保护优势、稳健放量、竞品监控 |
-
-### B.4 词根执行建议（ACOS 档位统一引用 `config/analysis_config.yaml` → `thresholds.acos`）
-
-| 条件 | 建议 |
-|------|------|
-| ACOS < 20% 且 订单 ≥ 3 | 核心盈利词根，加大投放 |
-| ACOS 20-35% 且 订单 ≥ 3 | 稳定词根，维持出价 |
-| ACOS 35-50% 且 订单 ≥ 3 | 待优化，降低出价或优化匹配 |
-| ACOS > 50% 且 订单 ≥ 3 | 低效词根，考虑否定或大幅降出价 |
-| ACOS > 100% 且 花费 > $10 | 亏损词根，优先否定 |
-| 有花费无订单 且 花费 > $5 | 浪费词根，建议否定 |
-
-### B.5 否定词优先级
-
-| 优先级 | 条件 | 执行时间 |
-|--------|------|----------|
-| P0-紧急 | ACOS > 150% 且 花费 > $20 | 立即 |
-| P1-高 | ACOS > 100% 且 花费 > $10 | 今天 |
-| P2-中 | ACOS > 50% 且 花费 > $5 | 3天内 |
-| P3-低 | 有花费无订单 且 花费 > $5 | 7天内 |
-
-### B.6 ACOS过高诊断路径
-
-```
-ACOS = CPC ÷ (CVR × 客单价)
-
-→ CPC高：降竞价 / 优化关键词
-→ CVR低：优化Listing / 价格 / 评论
-→ 客单价低：组合销售 / 提升产品价值
-```
+> 阈值速查见 `config/analysis_config.yaml` 与 Phase 6 D/E/F。

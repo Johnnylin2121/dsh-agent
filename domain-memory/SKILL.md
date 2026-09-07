@@ -3,12 +3,14 @@ name: domain-memory
 description: >
   领域记忆管理 skill。统一的记忆写入/查询/检索工具。
   支持交易、Amazon广告、Amazon Listing、Amazon选品、通用决策五个领域。
-  可在其他 skill 的入口/出口处自动调用，实现"每次会话自动加载相关记忆"。
+  可被其他 skill 集成（见 references/integration-guide.md）；当前已集成：trading-daily-review。
   触发词：记一下、查一下记忆、上次的教训、这有什么前例、记忆检索、写入记忆。
 dependencies:
   - "obsidian-vault (路径: {VAULT_PATH})"
 ---
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
+> `{VAULT_PATH}` 执行时从 `~/.dsh/MEMORY.md` 的「Obsidian Vault」行读取（当前为 `D:\OneDrive\ObsidianVault`）。
+> **与 Hindsight 记忆的分工**：domain-memory 管 vault 内领域记忆文件（业务教训，obsidian_* 检索，人可读）；Hindsight 管 DSH 自身会话/工程记忆（hindsight_* 工具，不落 vault）。业务教训只进 vault，工程坑只进 Hindsight，不双写。
 # Domain Memory — 领域记忆管理
 
 ## 核心原则
@@ -161,10 +163,7 @@ dependencies:
      3. 用 grep 过滤 tags/rules
      4. 取最近 last_n 条
    
-   模式 B：FTS5 检索（文件 ≥ 50 条时，可选）
-     1. 调用 scripts/query_memory.py（如果存在）
-     2. 参数：--domain --tags --last --days --rules
-     3. 返回结构化结果
+   模式 B：scripts/query_memory.py 未提供，暂不可用；文件 ≥ 50 条时再实现 FTS5 脚本检索
    ```
 
 4. **输出格式**：
@@ -241,7 +240,7 @@ dependencies:
 ## 示例交互
 
 ### 用户："复盘"
-（trading-每日复盘 启动，自动调用记忆加载）
+（trading-daily-review 启动，自动调用记忆加载）
 
 ```
 [系统] 加载了 5 条交易记忆：
@@ -284,20 +283,9 @@ dependencies:
 | 文件 | 用途 |
 |------|------|
 | `references/memory-template.md` | 完整记忆模板（含所有领域） |
-| `scripts/query_memory.py` | (可选) FTS5 检索脚本，当文件 ≥ 50 条时使用 |
 
 ---
 
-## 创建 Obsidian 目录（首次使用时执行）
+## 目录创建
 
-```bash
-vault="{VAULT_PATH}"
-dirs=(
-    "$vault/交易体系/交易记忆"
-    "$vault/工作/亚马逊工作管理/记忆管理/广告记忆"
-    "$vault/工作/亚马逊工作管理/记忆管理/Listing记忆"
-    "$vault/工作/亚马逊工作管理/记忆管理/选品记忆"
-    "$vault/通用/决策记忆"
-)
-for d in "${dirs[@]}"; do [ -d "$d" ] || mkdir -p "$d"; done
-```
+首次写入用 `obsidian_write` 写目标文件即可自动创建父目录；general 域 `通用/决策记忆/` 当前不存在，首次写入自动创建。

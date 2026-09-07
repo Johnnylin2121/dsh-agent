@@ -16,6 +16,8 @@
 """
 
 import argparse
+import os
+import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -61,8 +63,29 @@ DEFAULT_PARAMS = {
 
     # 输出
     "top_n": 10,
-    "output_dir": r"D:\OneDrive\ObsidianVault\工作\选品报告",
 }
+
+
+def _vault_path_from_memory():
+    """从 %USERPROFILE%\\.dsh\\MEMORY.md 的「Obsidian Vault」行解析 vault 路径（即 {VAULT_PATH}）。"""
+    mem = Path(os.environ.get('USERPROFILE', str(Path.home()))) / '.dsh' / 'MEMORY.md'
+    try:
+        for line in mem.read_text(encoding='utf-8').splitlines():
+            if 'Obsidian Vault' in line:
+                m = re.search(r'`([^`]+)`', line)
+                if m:
+                    return Path(m.group(1).strip())
+    except OSError:
+        pass
+    return None
+
+
+def default_output_dir():
+    """默认报告目录：<vault>/工作/亚马逊工作管理/选品报告（MEMORY.md 2026-09-11 约定）；解析失败返回 None。"""
+    vault = _vault_path_from_memory()
+    if vault is None:
+        return None
+    return str(vault / '工作' / '亚马逊工作管理' / '选品报告')
 
 # 品类分类规则
 CATEGORY_RULES = {
@@ -1924,7 +1947,9 @@ def main():
         if args.output:
             output_path = args.output
         else:
-            output_dir = args.output_dir or params['output_dir']
+            output_dir = args.output_dir or default_output_dir()
+            if output_dir is None:
+                sys.exit('错误: 无法从 ~/.dsh/MEMORY.md 解析 Obsidian Vault 路径，请显式指定 --output 或 --output-dir')
             now = datetime.now().strftime('%Y-%m-%d')
             filename = Path(args.input).stem
             output_path = str(Path(output_dir) / f"{now} {filename} 选品分析.md")
@@ -1940,7 +1965,9 @@ def main():
         if args.output:
             output_path = args.output
         else:
-            output_dir = args.output_dir or params['output_dir']
+            output_dir = args.output_dir or default_output_dir()
+            if output_dir is None:
+                sys.exit('错误: 无法从 ~/.dsh/MEMORY.md 解析 Obsidian Vault 路径，请显式指定 --output 或 --output-dir')
             now = datetime.now().strftime('%Y-%m-%d')
             filename = Path(args.input).stem
             output_path = str(Path(output_dir) / f"{now} {filename} ABA选品分析.md")
@@ -1967,7 +1994,9 @@ def main():
         if args.output:
             output_path = args.output
         else:
-            output_dir = args.output_dir or params['output_dir']
+            output_dir = args.output_dir or default_output_dir()
+            if output_dir is None:
+                sys.exit('错误: 无法从 ~/.dsh/MEMORY.md 解析 Obsidian Vault 路径，请显式指定 --output 或 --output-dir')
             now = datetime.now().strftime('%Y-%m-%d')
             safe_keyword = args.keyword.replace(' ', '_')[:30]
             output_path = str(Path(output_dir) / f"{now} 深度分析 {safe_keyword}.md")
@@ -2004,7 +2033,9 @@ def main():
         if args.output:
             output_path = args.output
         else:
-            output_dir = args.output_dir or params['output_dir']
+            output_dir = args.output_dir or default_output_dir()
+            if output_dir is None:
+                sys.exit('错误: 无法从 ~/.dsh/MEMORY.md 解析 Obsidian Vault 路径，请显式指定 --output 或 --output-dir')
             output_path = str(Path(output_dir) / f"{now} {filename} {label}筛选.md")
 
         # 生成简报

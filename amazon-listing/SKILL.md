@@ -5,9 +5,9 @@ description: >
   listings to extract core keywords, write an optimized title + Item Highlights +
   bullet points with keyword embedding, and generate backend search terms.
   Implements the 2026-07 title policy (title ≤75 chars, Item Highlights ≤125 chars,
-  combined ≤200). Supports any Amazon marketplace. Crawling via Jina Reader or
+  combined ≤200). Supports any Amazon marketplace. Crawling via read_page/web_fetch or
   manual paste (no browser automation). Triggered by "亚马逊 listing", "竞品分析",
-  "关键词", "标题五点", "商品亮点", "后台搜索词", or similar.
+  "listing 核心关键词", "竞品关键词", "标题五点", "商品亮点", "后台搜索词", or similar.
 ---
 
 # Amazon Listing Optimization Workflow (2026-07 Policy)
@@ -83,24 +83,25 @@ Output: single progressively-built `.md` file written to `{VAULT_PATH}/工作/�
 1–5 competitor ASINs/URLs, same marketplace (≥3 recommended; warn if fewer, still proceed).
 
 ### Crawling — priority order (NO infinite retries; max 2 attempts per source)
-1. **Jina Reader** (DSH standard): `curl -s "https://r.jina.ai/https://www.<marketplace>/dp/<ASIN>"` — parse title/bullets from returned text.
-2. If Jina unreachable or CAPTCHA'd → try one direct `curl -A "<desktop UA>"` once; if it returns a robot-check page → **stop crawling and ask the user to paste** competitor title + bullets manually (match format: title line, then bullet lines).
+1. **read_page** (DSH built-in, first choice): `read_page url="https://www.<marketplace>/dp/<ASIN>"` — parse title/bullets from returned text.
+2. If read_page fails → retry once with `web_fetch` on the same URL.
+3. If still unreachable/CAPTCHA'd → try once with `curl.exe -s -A "<desktop UA>"` (note: pwsh bare `curl` is an Invoke-WebRequest alias — `-s` errors; always use `curl.exe`). If it returns a robot-check page → **stop crawling and ask the user to paste** competitor title + bullets manually (match format: title line, then bullet lines).
 
 Do NOT install/run playwright unless the host explicitly provides a browser automation setup.
 
 ### Keyword Analysis — use the bundled script
-Script: `scripts/kw_analysis.py` (python3). Feed it the collected competitor text (each title followed by its bullets in a UTF-8 txt file; script auto-assigns alternating blocks: odd blocks = titles of 5 competitors, even = their bullets — OR simpler: pass two files: titles.txt (one per line), bullets.txt (one per line)).
+Script: `%USERPROFILE%\.dsh\skills\amazon-listing\scripts\kw_analysis.py` — run with `python` (stdlib only; this machine's `python3` is a broken stub). Feed it the collected competitor text (each title followed by its bullets in a UTF-8 txt file; script auto-assigns alternating blocks: odd blocks = titles of 5 competitors, even = their bullets — OR simpler: pass two files: titles.txt (one per line), bullets.txt (one per line)).
 
-```bash
+```pwsh
 # Recommended layout: one file, title line first, bullet lines after, blank line between competitors
-python3 scripts/kw_analysis.py -i competitors.txt
+python "$env:USERPROFILE\.dsh\skills\amazon-listing\scripts\kw_analysis.py" -i competitors.txt
 ```
 
-Methodology (script implements):
-1. Clean: lowercase, strip punctuation, keep alphanumerics + `@` (so 8K@60Hz survives as one token), normalize unicode.
-2. 1-gram + 2-gram counting with **title ×3 weight, bullets ×1**; 3+ competitor titles containing a term → strong core candidate.
-3. Merge same-root variants (charger/charging → charger primary).
-4. Output ranked list → take top 10 as core keywords (mark those that define the category identity vs mere attributes).
+Methodology — script outputs the weighted 1-gram/2-gram ranking only; the agent completes the rest on top of it:
+1. Script clean: lowercase, strip punctuation, keep alphanumerics + `@` (so 8K@60Hz survives as one token), normalize unicode.
+2. Script count: 1-gram + 2-gram with **title ×3 weight, bullets ×1**; output ranked list.
+3. Agent completes (script does NOT implement): merge same-root variants (charger/charging → charger primary); mark terms present in ≥3 competitor titles as strong core candidates.
+4. Agent takes top 10 as core keywords (mark those that define the category identity vs mere attributes).
 
 ### Output (Section 1 of the .md file)
 Markdown table: Rank / Keyword / Score / Title Count / Bullet Count / Cross-Competitor, plus Variants table, plus competitor links list.
@@ -187,6 +188,7 @@ After the new listing goes live and accumulates ~1–2 weeks of ad data:
 - Communicate in the user's language.
 - .md is built progressively; never overwrite earlier sections.
 - Marketplace not in localization table → ask user for tone/language preferences.
+- 使用指南与踩坑记录：见同目录 `GUIDE.md`。
 
 ## 实战禁止清单(踩坑记录)
 - 75 恰好不触发亮点展示 → 永远留余量(≤73)。
