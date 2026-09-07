@@ -145,12 +145,10 @@ export function createFetcher(options = {}) {
             if (!response.ok) {
                 return { url, status: response.status, error: `HTTP ${response.status} ${response.statusText}`.trim() };
             }
-            // 本机 patch 2026-09-13: DSH 宿主内 response.body 为 null（流不可用，
-            // 同因见 dsh-xueqiu 补丁；xueqiu 用 res.text() 可行）。body 为 null 时
-            // 退回 response.text()，避免 readBody 返回空串导致 "no root element"。
-            const body = response.body !== null
-                ? await readBody(response.body, response.headers.get('content-type'), sizeLimit, combined)
-                : await response.text();
+            // 本机 patch 2026-09-13 (v2): DSH 宿主内 fetch Response 的 .body 流不可靠
+            // （null 或读出为空 → "no root element"）。一律退回 response.text()，
+            // 与 dsh-xueqiu 补丁同款读法（宿主内实测可靠）。
+            const body = await response.text();
             return { url, status: response.status, body };
         }
         catch (error) {
