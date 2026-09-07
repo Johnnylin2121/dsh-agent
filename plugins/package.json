@@ -12,7 +12,6 @@
         "dshmarket",
         "dsh-xueqiu",
         "dsh-obsidian",
-        "@dickpy/dsh-imagegen",
         "@liustack/modsearch",
         "dsh-context-doctor",
         "dsh-whale-widget",
@@ -22,7 +21,6 @@
     }
   },
   "dependencies": {
-    "@dickpy/dsh-imagegen": "^1.5.3",
     "@linxin666/dsh-client-ui-task-board": "^0.3.14",
     "@liustack/modsearch": "^5.10.1",
     "dsh-context-doctor": "link:E:/3.deepseek-harness/.dsh-patches/context-doctor-0.6.1",
