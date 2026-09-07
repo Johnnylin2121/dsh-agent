@@ -47,9 +47,9 @@ dependencies:
 | domain 值 | Obsidian 路径 | 目录 |
 |-----------|---------------|------|
 | `trading` | `交易体系/交易记忆/` | 自动创建 |
-| `amazon-ad` | `工作/记忆管理/广告记忆/` | 自动创建 |
-| `amazon-listing` | `工作/记忆管理/Listing记忆/` | 自动创建 |
-| `amazon-selection` | `工作/记忆管理/选品记忆/` | 自动创建 |
+| `amazon-ad` | `工作/亚马逊工作管理/记忆管理/广告记忆/` | 自动创建 |
+| `amazon-listing` | `工作/亚马逊工作管理/记忆管理/Listing记忆/` | 自动创建 |
+| `amazon-selection` | `工作/亚马逊工作管理/记忆管理/选品记忆/` | 自动创建 |
 | `general` | `通用/决策记忆/` | 自动创建 |
 
 ---
@@ -294,9 +294,9 @@ dependencies:
 vault="{VAULT_PATH}"
 dirs=(
     "$vault/交易体系/交易记忆"
-    "$vault/工作/记忆管理/广告记忆"
-    "$vault/工作/记忆管理/Listing记忆"
-    "$vault/工作/记忆管理/选品记忆"
+    "$vault/工作/亚马逊工作管理/记忆管理/广告记忆"
+    "$vault/工作/亚马逊工作管理/记忆管理/Listing记忆"
+    "$vault/工作/亚马逊工作管理/记忆管理/选品记忆"
     "$vault/通用/决策记忆"
 )
 for d in "${dirs[@]}"; do [ -d "$d" ] || mkdir -p "$d"; done
