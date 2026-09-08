@@ -3,7 +3,7 @@ name: domain-memory
 description: >
   领域记忆管理 skill。统一的记忆写入/查询/检索工具。
   支持交易、Amazon广告、Amazon Listing、Amazon选品、通用决策五个领域。
-  可被其他 skill 集成（见 references/integration-guide.md）；当前已集成：trading-daily-review。
+  可被其他 skill 集成（见 references/integration-guide.md）；当前已集成：trading-daily-review、trading-briefing-review。
   触发词：记一下、查一下记忆、上次的教训、这有什么前例、记忆检索、写入记忆。
 dependencies:
   - "obsidian-vault (路径: {VAULT_PATH})"
