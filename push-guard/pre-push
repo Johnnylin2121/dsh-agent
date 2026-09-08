@@ -1,0 +1,32 @@
+#!/bin/sh
+# pre-push hook — 全局隐私泄露扫描 (调用 push-scan.ps1)
+# 由 git config --global core.hooksPath 指向本目录, 对所有仓库生效
+# 跳过本仓库: git config pushscan.skip true ; 临时跳过: git push --no-verify
+# 跨平台: Windows/macOS 通用。引擎缺失时放行并警告(fail-open);
+#         若需严格模式(fail-closed), 把下方 SKIP_MSG 分支的 exit 0 改为 exit 1。
+
+zero=0000000000000000000000000000000000000000
+
+if command -v pwsh >/dev/null 2>&1; then
+  PS=pwsh
+elif [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "Linux" ]; then
+  # macOS/Linux: 无 pwsh 时放行+警告(安装: brew install --cask powershell)
+  echo "[pre-push] WARNING: pwsh not found - scan SKIPPED. Install: brew install --cask powershell"
+  exit 0
+else
+  PS=powershell.exe
+fi
+
+[ -f "$HOME/.dsh/git-hooks/push-scan.ps1" ] || {
+  echo "[pre-push] WARNING: push-scan.ps1 missing at ~/.dsh/git-hooks/ - scan SKIPPED"
+  exit 0
+}
+
+while read local_ref local_sha remote_ref remote_sha; do
+  # 删除远程分支: 无需扫描
+  [ "$local_sha" = "$zero" ] && continue
+  # 非分支 ref (tag 等): 也扫, 内容可能含新对象
+  "$PS" -NoProfile -ExecutionPolicy Bypass -File "$HOME/.dsh/git-hooks/push-scan.ps1" \
+    -LocalSha "$local_sha" -RemoteSha "$remote_sha" || exit 1
+done
+exit 0
