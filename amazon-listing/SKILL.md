@@ -161,13 +161,23 @@ Append Section 3 to the .md file with per-bullet char counts + keyword placement
 
 ---
 
-## Step 4 — Backend Search Terms (≤249 bytes)
+## Step 4 — Backend Search Terms (≤249 bytes) — V3 词组方案（2026-09 用户改造）
 
-1. Exclusion set = all unique words in Title + Highlights + Bullets.
-2. Candidates: unplaced core keywords, synonyms, misspellings, alternate-language terms, complementary terms, long-tail phrases.
-3. Filter: drop anything containing an excluded word; drop brands/ASINs/promo.
-4. Assemble: single spaces, no separators; truncate ≤249 **bytes** (verify byte length — accent-marked Spanish chars count 2 bytes).
-5. Output flat string + byte count + terms-source table + exclusion set.
+> 核心原则：后台搜索词**先于广告**完成，上架即用满字节；报表数据只做后续优化替换，不被动等待。禁止碎片词，只装**完整、有明确指向、与产品强相关**的词组。
+
+1. **素材源（优先级，零臆造）**：
+   ① 卖家精灵 overlay「自然流量词/关键词调研」——本 ASIN 真实排名词组（含流量占比/月搜索量，最高优先）
+   ② ABA/关键词调研数据文件
+   ③ 竞品标题词形 + 评论客户语言
+2. **形态 = 完整词组（phrase）**：客户搜的是有指向的词组（如 "teclado para tablet samsung"），不是孤立碎片。**禁止**单介词/单数字/单后缀碎片（plus、con、ñ、2m 单独出现均无效）。搭配词必须组成有指向的短语。
+3. **相关性门槛（橡皮/笔规则）**：词组意图必须能由本产品满足；高流量但无关的词一律不收。设备词（如 "galaxy tab a9 plus"）只有当本链接已实际出现在其搜索结果时才成立。
+4. **三层落位先于后台**：真实词组优先落标题/亮点（权重高）。后台词组按 `真实搜索偏好 × 新词覆盖率` 排序装填：
+   - 词组含未入位新词 → 收
+   - 词组整句 100% 已被标题/亮点/五点覆盖 → 跳过（零边际值，字节让给新覆盖词组）
+   - 同义/拼写变体以**完整词组**形式收（无重音变体、英文变体）
+5. **上架即装满 249 字节**：不预留等待报表；剩余字节继续装下一优先级词组。无素材可装时才允许留空并在文件中说明原因。
+6. **格式**：小写、单空格、无逗号分隔符；无竞品品牌/ASIN/促销词；兼容设备品牌允许（非竞品）；单复数取一；字节按 UTF-8 计（西语重音字符=2 字节）。
+7. **输出**：词组字符串 + 字节数 + **每条词组出处表**（真实词/流量占比/竞品/评论）+ 相关性自检记录。
 
 Append Section 4. Summary block at file end: marketplace / product / title chars / highlights chars / bullets avg / backend bytes / date.
 
@@ -197,3 +207,5 @@ After the new listing goes live and accumulates ~1–2 weeks of ad data:
 - 亮点与标题**逐词去重**(连 eARC/HDR 这种词也算重复,用收益表达替代)。
 - 竞品高频词(HDCP/VRR/Dolby/认证)≠ 本产品支持 → 一律 `[待确认]`。
 - 标题超过旧上限时,后台搜索词是唯一还能装关键词的地方→ Step 4 优先承接未入位关键词。
+- **后台搜索词禁碎片词**(plus/con/单字 ñ 这类无指向碎片=无效字节)→ 必须是完整有指向词组且过产品相关性门槛(2026-09 用户实证)。
+- **后台搜索词上架即用满 249B**,不得以"等广告报表回填"为由留空——报表只做后续优化替换。
