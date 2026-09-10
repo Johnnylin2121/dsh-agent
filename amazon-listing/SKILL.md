@@ -5,8 +5,9 @@ description: >
   listings to extract core keywords, write an optimized title + Item Highlights +
   bullet points with keyword embedding, and generate backend search terms.
   Implements the 2026-07 title policy (title ≤75 chars, Item Highlights ≤125 chars,
-  combined ≤200). Supports any Amazon marketplace. Crawling via read_page/web_fetch or
-  manual paste (no browser automation). Triggered by "亚马逊 listing", "竞品分析",
+  combined ≤200). Supports any Amazon marketplace. Crawling via read_page/web_fetch,
+  BrowserSkill browser automation (fallback for truncation/CAPTCHA/login-state), or
+  manual paste. Triggered by "亚马逊 listing", "竞品分析",
   "listing 核心关键词", "竞品关键词", "标题五点", "商品亮点", "后台搜索词", or similar.
 ---
 
@@ -84,10 +85,10 @@ Output: single progressively-built `.md` file written to `{VAULT_PATH}/工作/�
 
 ### Crawling — priority order (NO infinite retries; max 2 attempts per source)
 1. **read_page** (DSH built-in, first choice): `read_page url="https://www.<marketplace>/dp/<ASIN>"` — parse title/bullets from returned text.
-2. If read_page fails → retry once with `web_fetch` on the same URL.
-3. If still unreachable/CAPTCHA'd → try once with `curl.exe -s -A "<desktop UA>"` (note: pwsh bare `curl` is an Invoke-WebRequest alias — `-s` errors; always use `curl.exe`). If it returns a robot-check page → **stop crawling and ask the user to paste** competitor title + bullets manually (match format: title line, then bullet lines).
+2. If read_page fails or content is truncated (cloud extraction ~50k-char cap + page noise squeezing out bullets/variants — Amazon is the worst offender) / CAPTCHA'd / needs login state → **BrowserSkill plugin fallback**: `browser_session` start with the dp URL → `browser_page` wait `load` (do NOT use `networkidle` — Amazon long-polling connections time it out) → `browser_inspect` observe (get `@eN` refs; read title, bullets, variation swatches) → `browser_session` stop when done. See MEMORY.md「网页抓取路径策略」for details.
+3. If the browser path is unavailable (extension disconnected / browser closed) → **stop crawling and ask the user to paste** competitor title + bullets manually (match format: title line, then bullet lines).
 
-Do NOT install/run playwright unless the host explicitly provides a browser automation setup.
+Do NOT install/run playwright or drive browsers via curl — the BrowserSkill plugin is the only sanctioned browser automation on this machine.
 
 ### Keyword Analysis — use the bundled script
 Script: `%USERPROFILE%\.dsh\skills\amazon-listing\scripts\kw_analysis.py` — run with `python` (stdlib only; this machine's `python3` is a broken stub). Feed it the collected competitor text (each title followed by its bullets in a UTF-8 txt file; script auto-assigns alternating blocks: odd blocks = titles of 5 competitors, even = their bullets — OR simpler: pass two files: titles.txt (one per line), bullets.txt (one per line)).
