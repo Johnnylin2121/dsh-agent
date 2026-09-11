@@ -16,13 +16,15 @@
         "dsh-context-doctor",
         "dsh-whale-widget",
         "@linxin666/dsh-client-ui-task-board",
-        "dsh-rss-digest"
+        "dsh-rss-digest",
+        "@wxg-prc-cpg/browser-skill-dsh-plugin"
       ]
     }
   },
   "dependencies": {
-    "@linxin666/dsh-client-ui-task-board": "^0.3.14",
-    "@liustack/modsearch": "^5.10.1",
+    "@linxin666/dsh-client-ui-task-board": "^0.3.20",
+    "@liustack/modsearch": "^5.10.2",
+    "@wxg-prc-cpg/browser-skill-dsh-plugin": "^0.2.1",
     "dsh-context-doctor": "link:E:/3.deepseek-harness/.dsh-patches/context-doctor-0.6.1",
     "dsh-find-plugin": "^0.3.7",
     "dsh-obsidian": "^0.2.3",
@@ -30,7 +32,7 @@
     "dsh-plugin-deepeye": "^0.2.0",
     "dsh-rss-digest": "0.1.0",
     "dsh-whale-widget": "^0.2.10",
-    "dsh-xueqiu": "^1.22.13",
-    "dshmarket": "^1.41.0"
+    "dsh-xueqiu": "^1.22.15",
+    "dshmarket": "^1.45.1"
   }
 }
