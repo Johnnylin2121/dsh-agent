@@ -17,7 +17,8 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 | 读取笔记（正文+frontmatter） | `obsidian_read` | read |
 | 新建/覆盖笔记（含自动建父目录） | `obsidian_write` | write |
 | 追加内容（如实体动态追加） | `obsidian_append` | edit 追加 |
-| 移动/重命名（自动同步 `[[链接]]`） | `obsidian_move` | fs 移动 |
+| 移动/重命名单篇（自动同步 `[[链接]]`） | `obsidian_move` | fs 移动 |
+| 批量/整目录移动（全库链接重写+清空目录） | `node "$HOME/.dsh/skills/_shared/vault-batch.mjs" move <旧> <新> --dry-run` | 逐篇 `obsidian_move` |
 | 删除 | `obsidian_delete`（移入 `.trash/` 可逆） | 不可逆删除【禁用】 |
 | 断链检查（Step 6） | `obsidian_backlinks` + `obsidian_search` | 手动 grep `[[` |
 | 标签汇总 | `obsidian_tags` | 手动统计 |
@@ -28,6 +29,7 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 - 删除一律用 `obsidian_delete`（进 `.trash/`），绝不永久删除——符合"历史文件必须保留"规则。
 - `obsidian_*` 工具不可用时才走 pwsh/文件工具路径，并按本文件原有 {VAULT_PATH} 逻辑执行。
 - 无论用哪种工具，OneDrive 批量写入仍须分批，避免触发同步锁。
+- 一次要动整目录或一次多篇：用 `_shared/vault-batch.mjs`（`obsidian_move` 仅处理单篇）。该脚本保留 `|别名`/`#锚点`/`![[嵌入]]`，路径式链接仍写路径、裸名仍写裸名，并清理空目录；**先加 `--dry-run` 看改写清单再执行**。库结构/孤立笔记/悬空链接体检也用同一脚本：`node "$HOME/.dsh/skills/_shared/vault-batch.mjs" structure|orphans|dangling`。
 
 ## 触发条件
 
