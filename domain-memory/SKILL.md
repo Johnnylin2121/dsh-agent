@@ -9,8 +9,8 @@ dependencies:
   - "obsidian-vault (路径: {VAULT_PATH})"
 ---
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
-> `{VAULT_PATH}` 执行时从 `~/.dsh/MEMORY.md` 的「Obsidian Vault」行读取（当前为 `{VAULT_PATH}`）。
-> **与 Hindsight 记忆的分工**：domain-memory 管 vault 内领域记忆文件（业务教训，obsidian_* 检索，人可读）；Hindsight 管 DSH 自身会话/工程记忆（hindsight_* 工具，不落 vault）。业务教训只进 vault，工程坑只进 Hindsight，不双写。
+> `{VAULT_PATH}` 执行时从 `~/.dsh/MEMORY.md` 的「Obsidian Vault」行读取；**本机实际路径以该行为准，不要写进本仓库**。
+> **记忆分工（2026-09-15 校订）**：Hindsight 插件已于 2026-09-13 卸载，`hindsight_*` 工具**不存在**，不要再调用。domain-memory 管 vault 内领域记忆文件（业务教训，`obsidian_*` 检索，人可读）；DSH 自身会话/工程坑记入 `MEMORY.md`（或 vault `_系统/` 下的工程笔记），业务教训只进 vault，两者不双写。
 # Domain Memory — 领域记忆管理
 
 ## 核心原则

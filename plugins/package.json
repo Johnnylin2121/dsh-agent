@@ -14,24 +14,25 @@
         "dsh-obsidian",
         "@liustack/modsearch",
         "dsh-context-doctor",
-        "dsh-whale-widget",
-        "@linxin666/dsh-client-ui-task-board",
         "dsh-rss-digest",
-        "@wxg-prc-cpg/browser-skill-dsh-plugin"
+        "@wxg-prc-cpg/browser-skill-dsh-plugin",
+        "dsh-timer-agent",
+        "dsh-notifier"
       ]
     }
   },
   "dependencies": {
-    "@linxin666/dsh-client-ui-task-board": "^0.3.20",
+    "@helibeiqi/dsh-excel-kit": "github:helibeiqi/dsh-excel-kit",
     "@liustack/modsearch": "^5.10.2",
     "@wxg-prc-cpg/browser-skill-dsh-plugin": "^0.2.1",
     "dsh-context-doctor": "link:E:/3.deepseek-harness/.dsh-patches/context-doctor-0.6.1",
     "dsh-find-plugin": "^0.3.7",
-    "dsh-obsidian": "^0.2.3",
-    "dsh-peak-cost-mode": "^0.4.0",
+    "dsh-notifier": "github:THEWOLFWALKER/dsh-notifier",
+    "dsh-obsidian": "^0.2.5",
+    "dsh-peak-cost-mode": "0.4.0",
     "dsh-plugin-deepeye": "^0.2.0",
     "dsh-rss-digest": "0.1.0",
-    "dsh-whale-widget": "^0.2.10",
+    "dsh-timer-agent": "github:LouisHaoL/dsh-timer-agent",
     "dsh-xueqiu": "^1.22.15",
     "dshmarket": "^1.45.1"
   }

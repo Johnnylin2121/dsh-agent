@@ -224,14 +224,11 @@ node -e "fetch('https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f1
 - 已持仓计划触发止损线 → 立即提醒
 - 市场出现重大方向变化可能影响已有计划前提 → 提醒审查
 
-**自动盘中提醒（可选 · task-board cron 承接）**：
-本 skill 依赖会话在场；无人值守时段的 10:00/13:00/14:30 提醒可交给任务看板 cron 插件（`@linxin666/dsh-client-ui-task-board`）。用户在 GUI 侧边栏「任务看板」新建任务，agent 可代为说明/起草：
-- **钉住三元组**：工作区 = `{VAULT_PATH}`（Obsidian vault，实际路径以 `~/.dsh/MEMORY.md` 为准）；agent 预设 = `trading-desk`（其 prompt 会先读 MEMORY.md，继承交易约定）；权限 = `workspace-write`（高于默认 `read-only` → 首次须在任务详情人工确认，确认后 cron 才会调度）
-- **cron 建议（5 段，Host 本地时区）**：早盘/午盘 `0 10,13 * * 1-5`；尾盘裁决轮 `30 14 * * 1-5`（14:30 必做轮）。同一任务运行中时到期触发自动跳过并滚动到下一匹配点
-- **任务 Prompt 模板**（cron 每次新建**独立会话**、无对话上下文，Prompt 必须自包含）：
-  > 执行盘中验证（trading-daily-review skill 阶段二）。读 `{VAULT_PATH}/交易体系/盘前预测/` 当日文件与 `交易体系/交易计划/` 当日操作计划；拉数据：`node "$HOME/.dsh/skills/_shared/dsh-market.mjs" index`、`stocks`、`sector`（curl 不可用），辅以 xueqiu_quote 交叉复核。按观察清单逐条验证；写入 `{VAULT_PATH}/交易体系/盘中验证/YYYY-MM-DD 盘中验证.md`（追加 `## 盘中验证 HH:MM` 章节，铁律7：不写前日复盘）。入场条件接近触发或持仓止损线触发时，在回复中显著标注【需人工决策】——只提示，不替用户决策。
-- **限制（须告知用户）**：①错过触发点（睡眠/关机/Host 未运行）直接跳过，不补跑；②每次运行新建会话，消耗与普通会话相同的 API 额度；③需要 `dsh web` Host 进程存活；④权限/钉住变更会重新武装确认门，cron 在确认前跳过该卡
-
+**无人值守提醒（现状 · 2026-09-15 校订）**：
+原方案（任务看板 cron 插件 `@linxin666/dsh-client-ui-task-board`）实测未生效：`~/.dsh/task-board/ledger-v2.json` 的 `tasks` 与 `recentRequests` 恒为空，从未创建或触发过任何任务；插件已卸载、数据目录已清。**不要再引用任务看板或任何 `task_*` 工具。**
+现已装可用替代：`dsh-timer-agent`（工具 `timer_agent`；Host 常驻 60s ticker，5 段 cron；`kind=agent` 到点真起 agent 会话，可指定 `workdir` 项目与 `session` 钉住会话继承上下文；`kind=command` 直接跑脚本、不耗 API）＋ `dsh-notifier`（工具 `notify` / `notify_test`，多渠道推送；**装后需先在它启动时打印的本机管理台配渠道**，默认 `channels: []` 只订阅不发）。
+建议配置：早盘/午盘 `0 10,13 * * 1-5`、尾盘裁决轮 `30 14 * * 1-5`，`kind=agent` + `workdir` = vault 根、prompt 自包含（无人值守不得提问）——触发点错过（睡眠/关机/Host 未运行）直接跳过不补跑；需人工决策处只在回复里标【需人工决策】，不替用户决策。
+备用方案：Windows 计划任务调用 `dsh --profile headless`（DSH 原生 Schedule overlay 在 web-app bundle 里默认 disabled，要用需额外启用 `ui-schedule` + Host Schedule 服务）。
 ---
 
 ### 阶段三：盘后复盘（15:00后）
