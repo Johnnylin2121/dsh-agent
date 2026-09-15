@@ -24,10 +24,11 @@
 默认用你提供的链接站点;确认产品类目适用 75/125/200(媒体类豁免,服装类标题 60)。
 
 ### Step 1 — 竞品数据 + 核心关键词 Top10
-**抓取降级链**(最多各试 2 次;2026-09-18 起 BrowserSkill 插件已装,详见 MEMORY.md「网页抓取路径策略」):
+**抓取降级链**(最多各试 2 次;详见 MEMORY.md「网页抓取路径策略」):
+0. **先加载 `browser-skill` 技能**:六个 `browser_*` 工具是惰性揭示——不先成功 `skill browser-skill`,工具表里就没有 browser_session/browser_page/browser_inspect(这不是插件缺失);加载后仍无工具,才算浏览器通道不可用
 1. read_page(首选,快+省 token;内容完整即用)
-2. 截断(云端提取 5 万字符上限+噪音挤压)/CAPTCHA/需登录态 → **BrowserSkill**:`browser_session` start(dp URL) → `browser_page` wait `load`(勿 networkidle,Amazon 长连接会超时) → `browser_inspect` observe 读标题/五点/变体 → `browser_session` stop
-3. 浏览器通道也不可用(扩展断连/浏览器没开) → **你手动粘贴**竞品标题+五点(每竞品:标题一行,下面跟五点行)
+2. 截断(云端提取 5 万字符上限+噪音挤压)/CAPTCHA/需登录态 → **BrowserSkill**(须先按第 0 步加载技能):`browser_session` start(dp URL) → `browser_page` wait `load`(勿 networkidle,Amazon 长连接会超时) → `browser_inspect` observe 读标题/五点/变体 → `browser_session` stop
+3. 浏览器通道也不可用(工具未注册/扩展断连/浏览器没开) → **你手动粘贴**竞品标题+五点(每竞品:标题一行,下面跟五点行)
 4. 禁止 curl(curl.exe schannel 坏)、禁止自装 playwright
 
 **分析**:自动运行 `scripts/kw_analysis.py`(标题词×3 / 五点词×1,输出 1-gram/2-gram 排名),AI 再筛出 Top10 核心词。你审核是否为品类定义词(如 "Hub USB 7 Puertos",而非纯属性 "Aluminio")。

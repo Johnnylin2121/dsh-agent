@@ -85,7 +85,7 @@ Output: single progressively-built `.md` file written to `{VAULT_PATH}/工作/�
 
 ### Crawling — priority order (NO infinite retries; max 2 attempts per source)
 1. **read_page** (DSH built-in, first choice): `read_page url="https://www.<marketplace>/dp/<ASIN>"` — parse title/bullets from returned text.
-2. If read_page fails or content is truncated (cloud extraction ~50k-char cap + page noise squeezing out bullets/variants — Amazon is the worst offender) / CAPTCHA'd / needs login state → **BrowserSkill plugin fallback**: `browser_session` start with the dp URL → `browser_page` wait `load` (do NOT use `networkidle` — Amazon long-polling connections time it out) → `browser_inspect` observe (get `@eN` refs; read title, bullets, variation swatches) → `browser_session` stop when done. See MEMORY.md「网页抓取路径策略」for details.
+2. **Preflight — 先加载 `browser-skill` 技能**：六个 `browser_*` 工具是**惰性揭示**的，只有成功调用 `skill(name="browser-skill")` 之后才会出现在工具表里——工具表里没有 `browser_*` 不等于插件没装，而是本会话还没加载该技能，**此时不要直接调用 browser_* 工具**。加载后，若 read_page 失败或内容被截断（云端提取 ~50k 字符上限 + 页面噪音挤掉五点/变体，Amazon 最严重）/ CAPTCHA / 需登录态 → **BrowserSkill 兜底**：`browser_session` start with the dp URL → `browser_page` wait `load` (do NOT use `networkidle` — Amazon long-polling connections time it out) → `browser_inspect` observe (get `@eN` refs; read title, bullets, variation swatches) → `browser_session` stop when done. See MEMORY.md「网页抓取路径策略」for details.
 3. If the browser path is unavailable (extension disconnected / browser closed) → **stop crawling and ask the user to paste** competitor title + bullets manually (match format: title line, then bullet lines).
 
 Do NOT install/run playwright or drive browsers via curl — the BrowserSkill plugin is the only sanctioned browser automation on this machine.
