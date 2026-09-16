@@ -2,6 +2,13 @@
 
 个人 DSH（DeepSeek Harness）技能与插件配置仓库。跨会话持久化，换机器一键恢复。
 
+> **双端工作制**（Windows 主机 + macOS 笔记本，长期）：先读这两份再动手
+> - `DUAL-END.md` — 双端同步模型、Mac 端接入清单、推送协议、并发冲突规则、两端差异豁免
+> - `_shared/PORTABILITY.md` — 跨端内容写作规范（占位符、解释器、命令两端写法、常见坑）
+> - `REPO-MAP.md` — 仓库地图：5 个远端仓、本地副本映射、**什么内容放哪里**、缺口清单
+> - 自动门禁：`node tools/validate-repo.mjs`（本地）+ `.github/workflows/validate.yml`（push/PR 自动跑）；隐私扫描由 `push-guard/` 钩子负责
+> - 许可：MIT（见 `LICENSE`）
+
 ## 包含什么
 
 ### Skills（21 个）

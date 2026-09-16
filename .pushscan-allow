@@ -3,3 +3,7 @@ re='
 # 2026-09-15: domain-memory 里那句「本机 vault 实路径」已脱敏删除; 删除行仍会进 patch
 # 而被 VAULT-PATH 命中(内容已在远程历史, 非本次新泄露)。仅放行「当前为 ...」这一句的删除。
 rule=VAULT-PATH.*当前为
+# 2026-09-16 双端化提交: 本次删除的正是「写死的 Windows 解释器/spill 路径」(修复本身),
+# 删除行带 '-' 前缀仍会被 LOCAL-PATH 命中。仅放行带删除前缀的行, 新增行不受影响。
+rule=LOCAL-PATH\s+-.*python\.exe
+rule=LOCAL-PATH\s+-.*dsh-spill

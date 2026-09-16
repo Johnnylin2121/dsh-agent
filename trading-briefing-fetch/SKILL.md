@@ -22,7 +22,7 @@ description: 早报自动层数据抓取（akshare+快讯）。商品价格表/�
 - 文件头部带"自动数据层、未经人工审核"标记；**不自动入库，永不回写正式早读**
 - 数据口径：商品/美股 = 最近两根日线收盘（与人工版"15:00→次日6:30"口径不同，复核时按 trading-briefing-review 的四态规则判定）；A50 = 新浪 hq.sinajs.cn hf_CHA50CFD（实时快照，字段0=最新/7=昨收）
 - **复核触发**：正式早读入库后由用户手动触发"复核早读"（trading-briefing-review）；本 skill 不自动触发复核
-- 依赖：Python 3.12 + akshare（`C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe`）——Python312 全路径为实测正确（2026-09 实测 akshare 1.18.64；默认 `python` 是无 akshare 的 venv 3.11.15，勿改用裸 python）；接口偶发失效时重试 1 次并保留 [待补]
+- 依赖：Python 3.12 + akshare。Windows 用 `$env:LOCALAPPDATA\Programs\Python\Python312\python.exe`（本机裸 `python` 是无 akshare 的 venv 3.11.15，勿改用裸 python）；macOS 用 `python3` + `pip3 install akshare`。跨端对照见 `_shared/PORTABILITY.md`。2026-09 实测 akshare 1.18.64；接口偶发失效时重试 1 次并保留 [待补]
 
 ## 配套
 - RSS 全球财经简报：dsh-rss-digest 插件每日 07:00 自动生成 → `交易体系/早报数据/rss-digest/digests/`，自动层第二信息源

@@ -58,7 +58,10 @@
 | 内容类型 | 归属位置 | 入库？ |
 |---|---|---|
 | DSH skill 定义（`SKILL.md` + `references/` + `scripts/`） | `dsh-agent/<skill-name>/` | ✅ |
-| 跨 skill 共享脚本 | `dsh-agent/_shared/` | ✅ |
+| 跨 skill 共享脚本与规范 | `dsh-agent/_shared/`（`dsh-market.mjs`、`vault-batch.mjs`、`PORTABILITY.md`） | ✅ |
+| 跨端体检脚本 | `dsh-agent/tools/validate-repo.mjs` | ✅ |
+| CI 工作流 | `dsh-agent/.github/workflows/validate.yml` | ✅ |
+| 双端协议 / 仓库地图 / 许可 | `dsh-agent/DUAL-END.md`、`REPO-MAP.md`、`LICENSE`、`.gitattributes` | ✅ |
 | profile 插件清单备份 | `dsh-agent/plugins/package.json` | ✅ |
 | 本地插件补丁 + 铺回脚本 | `dsh-agent/plugins/dsh-patches/` | ✅ |
 | push 防护脚本（pre-push / push-scan / check-drift） | `dsh-agent/push-guard/`，镜像到 `{DSH_HOME}/git-hooks` | ✅ |
@@ -108,10 +111,14 @@
 - ✅ HTTPS 仓无凭据助手 → `gh auth setup-git`
 
 **仍待决（需你拍板）**
-1. **LICENSE**：5 仓均无 license（个人仓库，可继续不设；若想明确授权，加 MIT/Apache-2.0 需你选）
-2. **`{WORKSPACE}` 约 108 MB 无版本控制**（amazon 产物、`.dsh-patches`、临时脚本）：归档进 vault / 建私仓 / 定期清理，三选一
-3. **CI**：可在 dsh-agent 加最小 workflow（push 时跑 push-scan + skill 结构校验）；注意会执行仓库内脚本
-4. **agent-skill 体积**：15.5 MB 历史资产，若确认不需要可整仓删除（归档已足够，不建议轻易删）
+1. **`{WORKSPACE}` 约 108 MB 无版本控制**（amazon 产物、`.dsh-patches`、临时脚本）：**已定策略 = 不新建仓库**——工作区定位为"临时区"，任何要留存的东西必须归档进 dsh-agent 或 `{VAULT_PATH}`；`plugins/dsh-patches/` 已是补丁的异地副本
+2. **agent-skill 体积**：15.5 MB 历史资产，已归档，不建议删
+
+**第三轮（2026-09-16，双端制落地）**
+- ✅ `LICENSE`（MIT）+ `.gitattributes`（`text=auto eol=lf`）——跨端换行统一
+- ✅ `tools/validate-repo.mjs` + `.github/workflows/validate.yml`：**跨端合规门禁**（平台绝对路径/密钥/垃圾文件/大文件/skill frontmatter），push 与 PR 自动跑
+- ✅ 清理技能里的 Windows 写死路径：`amazon-product-selection`（17 处）、`amazon-ad-analysis`（3 处 + config `python_windows`）、`trading-briefing-fetch`、`trading-memory-consolidate` → 改为 `$PY` / `$SKILL` 两端写法 + 指向 `_shared/PORTABILITY.md`
+- ✅ `DUAL-END.md`（双端协议）+ `_shared/PORTABILITY.md`（写作规范）
 
 ---
 
@@ -119,3 +126,4 @@
 
 - **2026-09-16 第一轮**：`gh` 登录后全量巡检 5 仓 + 本地 4 个副本 + 未纳管资产；补齐 skill-sync 注册表
 - **2026-09-16 第二轮**：提交并推送 preset 修复（`text`→`prefix`）；`agent-skill` 加冻结说明并归档；删除 `mood-notes` 的 `master`；5 仓补 description/topics；新增 `check-drift.ps1`；`gh auth setup-git` 打通 HTTPS 推送
+- **2026-09-16 第三轮（双端制）**：`LICENSE`(MIT) + `.gitattributes`(LF) + `tools/validate-repo.mjs` + CI 门禁；技能内 Windows 写死路径全部改为两端写法；新增 `DUAL-END.md` 与 `_shared/PORTABILITY.md`；确定"工作区=临时区、不留存"策略

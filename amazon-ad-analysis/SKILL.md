@@ -450,14 +450,25 @@ listing_data = {
 |----------|----------|-----------|--------|------|------|--------|----------|
 | {词根} | {精确/词组/短语} | {搜索词示例} | {数量} | ${金额} | {数量} | {P0/P1/P2/P3} | {理由} |
 
-**执行方式**：使用 `scripts/analysis_v2.py` 脚本（Windows 下用 config 中 `environment.python_windows` 指定的解释器）
+**执行方式**：使用 `scripts/analysis_v2.py` 脚本（Windows 下用 config 中 `environment.python_windows`；macOS 见 `_shared/PORTABILITY.md`）
 
+
+> **跨端执行（Windows / macOS 通用）**：先确定两个变量，再执行下方命令。全量对照表见 `_shared/PORTABILITY.md`。
+> ```powershell
+> # Windows PowerShell
+> $PY    = "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"   # 本机裸 python/python3 不可用
+> $SKILL = "$env:USERPROFILE\.dsh\skills\amazon-ad-analysis"
+> ```
+> ```bash
+> # macOS zsh/bash
+> PY="$(command -v python3)"; SKILL="$HOME/.dsh/skills/amazon-ad-analysis"
+> ```
 ```powershell
 # ⚠️ 必须用 config environment.python_windows 指定的解释器；本机裸 python 指向无 pandas 的 venv
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' scripts\analysis_v2.py roots --input search_terms.xlsx --output roots.xlsx --category usb_hub --top-n 50
+& $PY "$SKILL/scripts/analysis_v2.py" roots --input search_terms.xlsx --output roots.xlsx --category usb_hub --top-n 50
 
 # 否定词清单（v2）
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' scripts\analysis_v2.py negations --input search_terms.xlsx --output negations.xlsx --category usb_hub
+& $PY "$SKILL/scripts/analysis_v2.py" negations --input search_terms.xlsx --output negations.xlsx --category usb_hub
 ```
 
 脚本支持的品类配置：`usb_hub`, `electronics`, `home`, `custom`；品类组合词根在 `config/analysis_config.yaml` → `categories` 中维护。v1 脚本 `analysis.py` 已废弃，勿再引用。
@@ -547,11 +558,11 @@ listing_data = {
 2. {建议2}（原因）
 ```
 
-**执行方式**：使用 `scripts/analysis_v2.py` 脚本（v2；config 中 `environment.python_windows` 指定解释器）
+**执行方式**：使用 `scripts/analysis_v2.py` 脚本（v2；解释器见上方跨端说明）
 
 ```powershell
 # 关键词覆盖分析（v2；解释器同上，必须用 config environment.python_windows）
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' scripts\analysis_v2.py coverage --input search_terms.xlsx --listing listing.json --output coverage.xlsx
+& $PY "$SKILL/scripts/analysis_v2.py" coverage --input search_terms.xlsx --listing listing.json --output coverage.xlsx
 ```
 
 `listing.json` 格式：由 4A 前台抓取生成（三档降级后结构一致），包含 `title`, `bullets`, `description`, `aplus` 等字段；`scrape_mode` 注明抓取档位。

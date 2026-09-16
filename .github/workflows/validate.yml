@@ -1,0 +1,19 @@
+name: validate-repo
+
+# 双端工作制：任一端 push / PR 都做一次跨端合规体检
+# 规则见 tools/validate-repo.mjs（Windows/macOS 绝对路径、密钥、垃圾文件、体积、skill frontmatter）
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 跨端仓库体检
+        run: node tools/validate-repo.mjs
