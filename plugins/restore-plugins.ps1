@@ -8,7 +8,7 @@
 #   3) 提示哪些东西本仓库不含、需要人工重建（profile cordis.patch.yml、密钥环境变量）。
 
 $ErrorActionPreference = "Stop"
-$profileDir = "$HOME\.dsh\profiles\web"
+$profileDir = "$HOME/.dsh/profiles/web"
 $profilePkg = Join-Path $profileDir "package.json"
 $backupPkg = "$PSScriptRoot\package.json"
 
@@ -78,7 +78,7 @@ $sync | node - $backupPkg $profilePkg
 
 Write-Host ""
 Write-Host "=== 重铺本地补丁 ===" -ForegroundColor Cyan
-$reapply = Join-Path $PSScriptRoot 'dsh-patches\reapply-all.ps1'
+$reapply = Join-Path $PSScriptRoot 'dsh-patches/reapply-all.ps1'
 if (Test-Path $reapply) { & $reapply } else { Write-Warning "未找到 $reapply，请手动重铺 dsh-patches 下的补丁" }
 
 Write-Host ""

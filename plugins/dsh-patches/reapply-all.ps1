@@ -5,14 +5,14 @@
 
 $ErrorActionPreference = 'Continue'
 $patches = $PSScriptRoot
-$nm = Join-Path $HOME '.dsh\profiles\web\node_modules'
+$nm = Join-Path $HOME '.dsh/profiles/web/node_modules'
 $lines = New-Object System.Collections.Generic.List[string]
 
 Write-Host '=== 本地补丁重铺 ===' -ForegroundColor Cyan
 
 # ---- 1) deepeye：视觉请求会话头补丁（无哨兵脚本，直接覆盖比对 hash）----
-$src = Join-Path $patches 'dsh-plugin-deepeye\index.mjs.patched'
-$dst = Join-Path $nm 'dsh-plugin-deepeye\lib\index.mjs'
+$src = Join-Path $patches 'dsh-plugin-deepeye/index.mjs.patched'
+$dst = Join-Path $nm 'dsh-plugin-deepeye/lib/index.mjs'
 if ((Test-Path $src) -and (Test-Path $dst)) {
     if ((Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash) {
         $lines.Add('OK    deepeye       已是补丁版')
@@ -49,7 +49,7 @@ if (Test-Path (Join-Path $d 'patch-rss-digest.mjs')) {
 
 # ---- 4) context-doctor：link: 指向工作区补丁版，不需要铺，只校验可达 ----
 $cd = Join-Path $nm 'dsh-context-doctor'
-$lines.Add(("{0} context-doctor link 可达={1}" -f $(if (Test-Path (Join-Path $cd 'lib\index.js')) { 'OK   ' } else { 'FAIL ' }), (Test-Path (Join-Path $cd 'lib\index.js'))))
+$lines.Add(("{0} context-doctor link 可达={1}" -f $(if (Test-Path (Join-Path $cd 'lib/index.js')) { 'OK   ' } else { 'FAIL ' }), (Test-Path (Join-Path $cd 'lib/index.js'))))
 
 Write-Host ''
 $lines | ForEach-Object { Write-Host $_ }
