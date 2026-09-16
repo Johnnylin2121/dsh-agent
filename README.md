@@ -4,7 +4,7 @@
 
 ## 包含什么
 
-### Skills（18 个）
+### Skills（21 个）
 
 | 类别 | 技能 | 用途 |
 |------|------|------|
@@ -14,6 +14,8 @@
 | | `trading-stock-scan` | 个股深度研究（公告/评级/资金/技术面） |
 | | `trading-value-investing` | 价值投资体系（Mr.Dang功法） |
 | | `trading-briefing-fetch` | 财经早报数据抓取（akshare商品/美股/快讯→标准md草稿，六类关注方向规则初筛+LLM终筛） |
+| | `trading-briefing-review` | 早读复核（数据四态判定 + 主观判断审阅 + 盲区标记） |
+| | `trading-memory-consolidate` | 交易记忆批量审阅与八区记忆总表生成 |
 | **Amazon** | `amazon-ad-analysis` | 广告数据分析与经营分析 |
 | | `amazon-listing` | Listing优化（竞品关键词→标题≤75+商品亮点≤125→五点→后台搜索词，2026-07新政策） |
 | | `amazon-product-selection` | 选品分析（卖家精灵/ABA关键词趋势） |
@@ -26,6 +28,9 @@
 | | `caveman-help` | caveman模式速查 |
 | | `caveman-review` | 极简代码审查 |
 | **通用** | `grill-me` | 苏格拉底式提问 |
+| **仓库运维** | `skill-sync` | 与 GitHub 的同步流程 + 强制隐私扫描（push-guard） |
+
+> 📍 **仓库地图**：`REPO-MAP.md` —— 5 个远端仓的巡检简报、本地副本映射、**"什么内容放哪个仓库/目录"** 的放置规则、推送链路与缺口清单。管理/推送前先看它。
 
 > 2026-08 已移除：`notion-api`（macOS/zsh+jq+curl 写法，Windows 全链不可用；Notion 写入已由 trading-daily-review 内置集成承担）。
 

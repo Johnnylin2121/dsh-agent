@@ -17,14 +17,19 @@ description: >
 
 ## 仓库注册表
 
+> 完整巡检、本地副本映射与内容放置规则见仓库根 **`REPO-MAP.md`**（管理/推送前先看它）。
+
 | 仓库 | 远程 | 用途 |
 |------|------|------|
-| **dsh-agent（默认）** | `git@github.com:Johnnylin2121/dsh-agent.git` | **本地 `~/.dsh/skills/` 就是它的 clone**——所有 dsh 适配 skill + push-guard 组件的真源 |
-| agent-skill | `https://github.com/Johnnylin2121/agent-skill.git` | 旧技能集仓库（mimocode 时代），与 dsh-agent 内容部分重复，仅历史参考 |
-| dsh-agent-presets | `https://github.com/Johnnylin2121/dsh-agent-presets.git` | agent preset 配置 |
+| **dsh-agent（默认）** | `git@github.com:Johnnylin2121/dsh-agent.git`（SSH） | **本地 `~/.dsh/skills/` 就是它的 clone**——所有 dsh 适配 skill + push-guard 组件的真源 |
+| agent-skill | `https://github.com/Johnnylin2121/agent-skill.git` | 旧技能集仓库（mimocode 时代），与 dsh-agent 内容部分重复，**仅历史参考，已冻结不双写** |
+| dsh-agent-presets | `git@github.com:Johnnylin2121/dsh-agent-presets.git`（本地 `~/.dsh/.agent-presets`） | agent preset 配置（amazon-desk / trading-desk） |
+| AI-story | `https://github.com/Johnnylin2121/AI-story.git` | **非 DSH 资产**（小说项目），默认不动 |
+| mood-notes | `https://github.com/Johnnylin2121/mood-notes.git` | **非 DSH 资产**（单页玩具），默认不动 |
 
 **规则**：默认操作 dsh-agent（即当前目录本身）；跨仓库操作前先向用户确认。
 **单份真相**：skill 内容只在 dsh-agent 维护，不向 agent-skill 双写（避免漂移）。
+**非 git 通道**：`gh`（已登录 Johnnylin2121）走 GitHub API，**不经过 push-scan**——API 写操作（PR/issue/workflow/release）必须先经用户确认。
 
 ---
 
