@@ -69,8 +69,19 @@ Excel 文件至少包含以下字段：
 
 #### 步骤 1: 数据预处理
 
+
+> **跨端执行（Windows / macOS 通用）**：先确定两个变量，再执行下方命令。全量对照表见 `_shared/PORTABILITY.md`。
+> ```powershell
+> # Windows PowerShell
+> $PY    = "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe"   # 本机裸 python/python3 不可用
+> $SKILL = "$env:USERPROFILE\.dsh\skills\amazon-product-selection"
+> ```
+> ```bash
+> # macOS zsh/bash
+> PY="$(command -v python3)"; SKILL="$HOME/.dsh/skills/amazon-product-selection"
+> ```
 ```pwsh
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' preprocess --input <excel_path> --type aba
+& $PY "$SKILL/scripts/analysis.py" preprocess --input <excel_path> --type aba
 ```
 
 #### 步骤 2: 关键词分类
@@ -127,7 +138,7 @@ Excel 文件至少包含以下字段：
 ### 报告生成
 
 ```pwsh
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' aba-report --input <excel_path> --output <output_path>
+& $PY "$SKILL/scripts/analysis.py" aba-report --input <excel_path> --output <output_path>
 ```
 
 报告包含 9 个章节：
@@ -150,7 +161,7 @@ Excel 文件至少包含以下字段：
 ### 命令
 
 ```pwsh
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' deep-dive --input <excel_path> --keyword "<关键词>" --output <output_path>
+& $PY "$SKILL/scripts/analysis.py" deep-dive --input <excel_path> --keyword "<关键词>" --output <output_path>
 ```
 
 ### 分析内容
@@ -198,7 +209,7 @@ Excel 文件至少包含以下字段：
 ### 报告生成
 
 ```pwsh
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' report --input <excel_path> --output <output_path>
+& $PY "$SKILL/scripts/analysis.py" report --input <excel_path> --output <output_path>
 ```
 
 ---
@@ -209,25 +220,25 @@ Excel 文件至少包含以下字段：
 
 ```pwsh
 # 卖家精灵标准数据分析
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' report --input data.xlsx --output report.md
+& $PY "$SKILL/scripts/analysis.py" report --input data.xlsx --output report.md
 
 # ABA关键词趋势数据分析（汇总调研）
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' aba-report --input data.xlsx --output report.md
+& $PY "$SKILL/scripts/analysis.py" aba-report --input data.xlsx --output report.md
 
 # 深度分析单个关键词
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' deep-dive --input data.xlsx --keyword "teclado inalambrico" --output report.md
+& $PY "$SKILL/scripts/analysis.py" deep-dive --input data.xlsx --keyword "teclado inalambrico" --output report.md
 
 # 预处理数据（保存清洗后的Excel）
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' preprocess --input data.xlsx --type standard
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' preprocess --input data.xlsx --type aba
+& $PY "$SKILL/scripts/analysis.py" preprocess --input data.xlsx --type standard
+& $PY "$SKILL/scripts/analysis.py" preprocess --input data.xlsx --type aba
 
 # 6种独立选品筛选方法（ABA数据）
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' trend --input data.xlsx              # 趋势市场
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' potential --input data.xlsx          # 潜力市场
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' surge --input data.xlsx              # 飙升市场
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' low-competition --input data.xlsx    # 低竞争市场
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' ad-cost --input data.xlsx            # 低广告成本
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' long-tail --input data.xlsx          # 长尾细分
+& $PY "$SKILL/scripts/analysis.py" trend --input data.xlsx              # 趋势市场
+& $PY "$SKILL/scripts/analysis.py" potential --input data.xlsx          # 潜力市场
+& $PY "$SKILL/scripts/analysis.py" surge --input data.xlsx              # 飙升市场
+& $PY "$SKILL/scripts/analysis.py" low-competition --input data.xlsx    # 低竞争市场
+& $PY "$SKILL/scripts/analysis.py" ad-cost --input data.xlsx            # 低广告成本
+& $PY "$SKILL/scripts/analysis.py" long-tail --input data.xlsx          # 长尾细分
 ```
 
 ### 可选参数
@@ -292,16 +303,16 @@ Excel 文件至少包含以下字段：
 
 ## 八、执行示例
 
-> ⚠️ 本机默认 `python` 是无 pandas 的 venv（3.11.15），`python3` 是无效 stub——必须用下方命令中的 Python312 全路径调用 analysis.py。
+> ⚠️ **解释器**：Windows 本机裸 `python` 指向无 pandas 的旧 venv（3.11.15）、`python3` 是无效 stub → 必须用上面的 `$PY` 全路径；macOS 用 `PY="$(command -v python3)"`（需先 `pip3 install pandas openpyxl`）。
 
 ### 完整工作流示例
 
 ```pwsh
 # Step 1: 汇总调研
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' aba-report --input "~/Desktop/ABAKeywordTrend-MX-2026第29周-745797.xlsx" --output "{VAULT_PATH}/工作/亚马逊工作管理/选品报告/2026-07-25 MX ABA选品分析.md"
+& $PY "$SKILL/scripts/analysis.py" aba-report --input "~/Desktop/ABAKeywordTrend-MX-2026第29周-745797.xlsx" --output "{VAULT_PATH}/工作/亚马逊工作管理/选品报告/2026-07-25 MX ABA选品分析.md"
 
 # Step 2: 对感兴趣的关键词进行深度分析
-& 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe' 'C:\Users\johnn\.dsh\skills\amazon-product-selection\scripts\analysis.py' deep-dive --input "~/Desktop/ABAKeywordTrend-MX-2026第29周-745797.xlsx" --keyword "teclado inalambrico" --output "{VAULT_PATH}/工作/亚马逊工作管理/选品报告/2026-07-25 深度分析 teclado inalambrico.md"
+& $PY "$SKILL/scripts/analysis.py" deep-dive --input "~/Desktop/ABAKeywordTrend-MX-2026第29周-745797.xlsx" --keyword "teclado inalambrico" --output "{VAULT_PATH}/工作/亚马逊工作管理/选品报告/2026-07-25 深度分析 teclado inalambrico.md"
 ```
 
 ### 输出示例

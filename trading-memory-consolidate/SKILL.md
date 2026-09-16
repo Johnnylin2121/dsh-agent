@@ -61,7 +61,7 @@ Get-ChildItem "{VAULT_PATH}\交易体系\交易记忆" -Filter "2026-*.md" |
 - 每篇提取五要素：**rules（frontmatter）/ 预测假设 / 实际结果 / 偏差分析 / 规则修正**
 - "资产锚状态备忘"类内容 = 快照层，**不进总表**（易腐烂）
 
-> ⚠️ **实战坑：pwsh 输出截断**。文件多时输出超上限会被截断并给出 spill 文件路径（`C:\Users\...\dsh-spill-...\xxx-pwsh.txt`）。
+> ⚠️ **实战坑：pwsh 输出截断**。文件多时输出超上限会被截断并给出 spill 文件路径（`%LOCALAPPDATA%\Temp\dsh-spill-*\xxx-pwsh.txt`）。
 > 处理：用 grep 在 spill 文件中搜 `FILE: 2026-` 确认哪些篇没读到 → 用 read 工具按 offset 补读缺失区段。**必须逐篇清点，防止漏读**。
 
 ## 4. Step 2：分类归因（五类 + 口径统一）

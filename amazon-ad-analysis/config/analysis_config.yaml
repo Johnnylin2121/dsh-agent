@@ -352,7 +352,9 @@ listing_scrape:
 # 执行环境
 environment:
   # Windows 下 pandas 所在解释器（`python` 可能指向无 pandas 的旧版本）
-  python_windows: 'C:\Users\johnn\AppData\Local\Programs\Python\Python312\python.exe'
+  # 占位：agent 执行时展开（Windows 实测值 = %LOCALAPPDATA%\Programs\Python\Python312\python.exe）
+  # macOS 用 python3（pip3 install pandas openpyxl）；跨端对照见 _shared/PORTABILITY.md
+  python_windows: '%LOCALAPPDATA%\Programs\Python\Python312\python.exe'
   force_utf8: true   # 控制台输出 UTF-8，避免中文列名乱码/emoji 崩溃
 
 # 数据验证配置
