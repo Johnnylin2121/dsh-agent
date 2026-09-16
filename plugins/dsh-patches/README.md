@@ -54,3 +54,15 @@
 - **改动**：`lib/index.mjs` describe() 请求头：baseUrl 含 opencode.ai 时附加 `x-opencode-session: dsh-deepeye-<每进程 randomUUID>`。
 - **文件对应**：`index.mjs.patched` → `~/.dsh/profiles/web/node_modules/dsh-plugin-deepeye/lib/index.mjs`
 - **重铺**：插件升级/重装后 `Copy-Item` 覆盖（无哨兵脚本，文件小）；配套 settings.yaml opencode-go provider `headers.x-opencode-session` 固定 UUID 修 DSH 自身请求。
+
+## 一键重铺：`reapply-all.ps1`（2026-09-16 新增）
+
+```powershell
+pwsh "$HOME\.dsh\skills\plugins\dsh-patches\reapply-all.ps1"
+```
+
+- 依次处理：deepeye（hash 比对后覆盖）、xueqiu（`patch-xueqiu.mjs`）、rss-digest（`patch-rss-digest.mjs`）、context-doctor（`link:` 只校验可达），逐项打印 `OK / FIX / SKIP / FAIL`；幂等，可随时跑。
+- **何时必须跑**：任何 `dsh plugin add/remove/update` 之后、插件升级之后、换机恢复之后。
+- **教训（2026-09-16 实测）**：为装 `dsh-cost-meter`、改 excel-kit 依赖别名所做的一串 `pnpm add/remove`，把 `dsh-plugin-deepeye` 重装了一遍，**就地补丁被洗掉** → 视觉立刻 `HTTP 400 MissingSessionID`。xueqiu / rss-digest 这次侥幸存活（不是被重装的对象），但不可依赖。
+- **生效条件**：补丁改的是宿主启动时加载的模块文件，**铺完必须重启 `dsh web`**；重启前调用仍走旧模块。
+- `restore-plugins.ps1` 末尾已自动调用本脚本，换机恢复一条命令到位。
