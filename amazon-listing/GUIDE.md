@@ -25,7 +25,7 @@
 
 ### Step 1 — 竞品数据 + 核心关键词 Top10
 **抓取降级链**(最多各试 2 次;详见 MEMORY.md「网页抓取路径策略」):
-0. **先加载 `browser-skill` 技能**:六个 `browser_*` 工具是惰性揭示——不先成功 `skill browser-skill`,工具表里就没有 browser_session/browser_page/browser_inspect(这不是插件缺失);加载后仍无工具,才算浏览器通道不可用
+0. **先加载 `browser-skill` 技能**:六个 `browser_*` 工具是惰性揭示——不先成功 `skill browser-skill`,工具表里就没有 browser_session/browser_page/browser_inspect(这不是插件缺失);加载后仍无工具,才算浏览器通道不可用;**dsh web 每次重启后揭示状态重置,需重新加载一次**
 1. read_page(首选,快+省 token;内容完整即用)
 2. 截断(云端提取 5 万字符上限+噪音挤压)/CAPTCHA/需登录态 → **BrowserSkill**(须先按第 0 步加载技能):`browser_session` start(dp URL) → `browser_page` wait `load`(勿 networkidle,Amazon 长连接会超时) → `browser_inspect` observe 读标题/五点/变体 → `browser_session` stop
 3. 浏览器通道也不可用(工具未注册/扩展断连/浏览器没开) → **你手动粘贴**竞品标题+五点(每竞品:标题一行,下面跟五点行)

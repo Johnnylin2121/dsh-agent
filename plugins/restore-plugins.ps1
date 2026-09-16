@@ -77,9 +77,13 @@ for (const b of want) console.log('  ' + b);
 $sync | node - $backupPkg $profilePkg
 
 Write-Host ""
+Write-Host "=== 重铺本地补丁 ===" -ForegroundColor Cyan
+$reapply = Join-Path $PSScriptRoot 'dsh-patches\reapply-all.ps1'
+if (Test-Path $reapply) { & $reapply } else { Write-Warning "未找到 $reapply，请手动重铺 dsh-patches 下的补丁" }
+
+Write-Host ""
 Write-Host "=== 恢复完成 ===" -ForegroundColor Cyan
 Write-Host "仍需人工处理（本仓库不含）：" -ForegroundColor Yellow
 Write-Host "  1. profile cordis.patch.yml —— rss-digest 落盘路径、DeepEye 视觉后端(baseUrl/model)、excel-kit 等配置"
 Write-Host "  2. DeepEye 的密钥走环境变量：setx DEEPEYE_API_KEY `"<key>`"（重启 dsh web 后生效）"
-Write-Host "  3. 本地补丁：plugins/dsh-patches/ 下的 context-doctor / dsh-xueqiu / dsh-rss-digest / deepeye 补丁按各自 README 重铺"
-Write-Host "  4. 重启 dsh web 使插件生效"
+Write-Host "  3. 重启 dsh web 使插件与补丁生效"
