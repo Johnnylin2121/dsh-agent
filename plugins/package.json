@@ -17,15 +17,18 @@
         "dsh-rss-digest",
         "@wxg-prc-cpg/browser-skill-dsh-plugin",
         "dsh-timer-agent",
-        "dsh-notifier"
+        "dsh-notifier",
+        "dsh-cost-meter",
+        "dsh-excel-kit"
       ]
     }
   },
   "dependencies": {
-    "@helibeiqi/dsh-excel-kit": "github:helibeiqi/dsh-excel-kit",
     "@liustack/modsearch": "^5.10.2",
     "@wxg-prc-cpg/browser-skill-dsh-plugin": "^0.2.1",
     "dsh-context-doctor": "link:E:/3.deepseek-harness/.dsh-patches/context-doctor-0.6.1",
+    "dsh-cost-meter": "^1.7.25",
+    "dsh-excel-kit": "npm:@helibeiqi/dsh-excel-kit@0.1.1",
     "dsh-find-plugin": "^0.3.7",
     "dsh-notifier": "github:THEWOLFWALKER/dsh-notifier",
     "dsh-obsidian": "^0.2.5",

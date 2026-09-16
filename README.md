@@ -33,15 +33,11 @@
 
 `plugins/` 目录备份 DSH web profile 的插件配置（`package.json` + 一键恢复脚本 `restore-plugins.ps1`）。`plugins/dsh-patches/` 额外备份两个**本地补丁**（context-doctor 原生 fetch 版 + dsh-xueqiu TLS 规避/浮窗隐藏补丁），来历与恢复方法见其 README；备份根因是本机 schannel TLS 损坏（详见 `plugins/dsh-patches/README.md`）。
 
-当前插件：`dsh-plugin-deepeye`（视觉，后端 opencode-go mimo-v2.5，见 profile cordis.patch.yml）· `dsh-peak-cost-mode`（高峰省流）· `dsh-find-plugin` · `dshmarket` · `dsh-xueqiu` · `dsh-obsidian` · `dsh-context-doctor`（本地补丁 link:）· `@liustack/modsearch`（网页/X读取）· `@wxg-prc-cpg/browser-skill-dsh-plugin`（浏览器自动化）· `dsh-rss-digest`（RSS→每日简报，早报数据源之一）· `dsh-timer-agent`（Host 常驻 cron 定时任务，工具 `timer_agent`）· `dsh-notifier`（多渠道通知，工具 `notify`/`notify_test`，需先配渠道）· `@helibeiqi/dsh-excel-kit`（只读 Excel 分析，工具 `excel_describe`/`excel_filter`/`excel_pivot`）。
+当前插件：`dsh-plugin-deepeye`（视觉，后端 opencode-go mimo-v2.5，见 profile cordis.patch.yml）· `dsh-peak-cost-mode`（高峰省流）· `dsh-find-plugin` · `dshmarket` · `dsh-xueqiu` · `dsh-obsidian` · `dsh-context-doctor`（本地补丁 link:）· `@liustack/modsearch`（网页/X读取）· `@wxg-prc-cpg/browser-skill-dsh-plugin`（浏览器自动化，六工具为**惰性揭示**：先 `skill browser-skill` 才出现）· `dsh-rss-digest`（RSS→每日简报，早报数据源之一）· `dsh-timer-agent`（Host 常驻 cron 定时任务，工具 `timer_agent`）· `dsh-notifier`（多渠道通知，工具 `notify`/`notify_test`，需先配渠道）· `dsh-cost-meter`（会话/当日费用、预算、余额、历史、峰谷计价；补 peak-cost 台账不落盘的缺口）· `dsh-excel-kit`（只读 Excel 分析，工具 `excel_describe`/`excel_filter`/`excel_pivot`）。
 
-> ⚠️ **恢复要点**：`@helibeiqi/dsh-excel-kit` **不进** `dsh.profile.bundles`——它自带的 bundle patch 用裸名 `dsh-excel-kit` 作模块说明符，从 profile 目录解析不到（npm 无同名非作用域包）；改由 profile `cordis.patch.yml` 插入可解析行。换机器恢复时，除跑 `restore-plugins.ps1` 外，还要把这段追加回 `~/.dsh/profiles/web/cordis.patch.yml`：
-> ```yaml
-> - insert:
->     - id: excel-kit
->       name: '@helibeiqi/dsh-excel-kit'
-> ```
-> 同理，DeepEye 视觉后端配置（含 API key）与 rss-digest 落盘配置只存在于 profile `cordis.patch.yml`，**因含明文密钥不入本仓库**，新机器需按本文件与 `MEMORY.md` 的记录手工重建（key 建议改走 `DEEPEYE_API_KEY` 环境变量）。
+> ⚠️ **两处非标准依赖写法（恢复时别踩）**：
+> 1. `dsh-excel-kit` 是 **npm 别名依赖**：`"dsh-excel-kit": "npm:@helibeiqi/dsh-excel-kit@^0.1.1"`。原因：该插件自带的 bundle patch 用**裸名** `dsh-excel-kit` 作模块说明符，而 npm 上没有同名非作用域包；用别名让依赖键=裸名，裸名即可解析，bundles 里也写 `dsh-excel-kit`（**不要**写 `@helibeiqi/dsh-excel-kit`，否则合成树里同一 id 会出现两行、其一是解析不了的裸名）。`restore-plugins.ps1` 会照别名 spec 安装。
+> 2. DeepEye 的 API key **不再内联**在 profile `cordis.patch.yml`：该文件里是 `apiKey: ''`，插件按 `config.apiKey > provider 专属 env > DEEPEYE_API_KEY` 回退，`provider: custom` 时读 `process.env.DEEPEYE_API_KEY`（用 `setx DEEPEYE_API_KEY "<key>"` 写入用户环境，**重启 dsh web 后生效**）。rss-digest 落盘配置仍在 profile `cordis.patch.yml`（不含密钥）。
 
 > 2026-09-15 已移除：`@linxin666/dsh-client-ui-task-board`（任务看板 cron 托管——装后从未真正建过/触发过任务，数据目录已清）、`dsh-whale-widget`（余额挂件，早前已卸）。**定时托管改由 `dsh-timer-agent`（`timer_agent` 工具）承接，提醒推送由 `dsh-notifier`（`notify` 工具）承接**，用法见 `trading-daily-review` 阶段二「无人值守提醒」。
 
