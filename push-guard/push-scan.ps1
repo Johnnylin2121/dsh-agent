@@ -51,7 +51,7 @@ if ($Staged) {
   Write-Host '[push-scan] no scan target'; exit 0
 }
 
-$patchFile = Join-Path $env:TEMP ("pushscan-" + [guid]::NewGuid().ToString('N') + ".patch")
+$patchFile = Join-Path ([System.IO.Path]::GetTempPath()) ("pushscan-" + [guid]::NewGuid().ToString('N') + ".patch")
 $patch | Set-Content -Path $patchFile -Encoding UTF8
 $findings = New-Object System.Collections.Generic.List[string]
 
@@ -62,7 +62,9 @@ try {
     $cand = @(
       "$env:LOCALAPPDATA\Microsoft\WinGet\Links\gitleaks.exe",
       "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Gitleaks.Gitleaks_Microsoft.Winget.Source_8wekyb3d8bbwe\gitleaks.exe",
-      'C:\Program Files\Gitleaks\gitleaks.exe'
+      'C:\Program Files\Gitleaks\gitleaks.exe',
+      '/opt/homebrew/bin/gitleaks',
+      '/usr/local/bin/gitleaks'
     ) | Where-Object { Test-Path $_ } | Select-Object -First 1
     if ($cand) { $gitleaks = $cand }
   }
@@ -101,7 +103,7 @@ try {
 
   # ── 白名单过滤 (repo 根 .pushscan-allow + 全局 pushscan-allow-global, 每行一条正则) ──
   $allowRes = @()
-  foreach ($af in @((Join-Path $repoRoot '.pushscan-allow'), (Join-Path $HOME '.dsh\git-hooks\pushscan-allow-global'))) {
+  foreach ($af in @((Join-Path $repoRoot '.pushscan-allow'), (Join-Path $HOME '.dsh/git-hooks/pushscan-allow-global'))) {
     if (Test-Path $af) { $allowRes += (Get-Content $af | Where-Object { $_ -and $_ -notmatch '^\s*#' }) }
   }
   if ($allowRes) {

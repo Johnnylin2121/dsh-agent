@@ -10,7 +10,7 @@
 param([switch]$Fix)
 
 $ErrorActionPreference = 'Continue'
-$live  = Join-Path $HOME '.dsh\git-hooks'
+$live  = Join-Path $HOME '.dsh/git-hooks'
 $guard = $PSScriptRoot                      # 本脚本就在 push-guard/ 内
 $files = @('pre-push', 'push-scan.ps1')
 
