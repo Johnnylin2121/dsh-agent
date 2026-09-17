@@ -314,8 +314,8 @@ Phase 7  归档：按 references/output-spec.md 生成 Markdown + 9-sheet Excel 
 
 ```python
 listing_data = {
-    'asin': 'B083XTKV8V',
-    'url': 'https://www.amazon.com/dp/B083XTKV8V',
+    'asin': 'B0########',
+    'url': 'https://www.amazon.com/dp/B0########',
     'title': '...',          # 档位1通常仅此字段可用
     'bullets': [...],        # 档位2可完整；档位1可能为空
     'description': '...',    # 同上
@@ -403,7 +403,7 @@ listing_data = {
 **词根提取规则**：
 1. **去除停用词**：a, an, the, for, with, and, or, to, in, on, at, by, of, is, it 等
 2. **保留有意义的词根**：品牌词、品类词、属性词、型号词
-3. **ASIN单独作为词根**：搜索词中出现的ASIN（如 b00tpmeoym）单独作为一个词根
+3. **ASIN单独作为词根**：搜索词中出现的ASIN（如 B0########）单独作为一个词根
 4. **词根可重叠**：一个搜索词可以匹配多个词根（如 "atolla usb 3.0 hub" 匹配 "atolla", "usb", "3.0", "hub", "usb hub", "usb 3.0 hub"）
 5. **组合词根**：常见组合保留为独立词根（如 "usb hub", "usb 3.0 hub", "powered usb hub", "port usb hub"）
 
@@ -414,7 +414,7 @@ listing_data = {
 | 品牌词 | 包含品牌名的词根 | atolla, anker, sabrent |
 | 品类词 | 产品大类词 | usb hub, usb splitter, usb port |
 | 属性词 | 产品属性描述 | powered, 3.0, aluminum, 4-port |
-| 型号词 | ASIN或竞品型号 | b00tpmeoym, b07g8cmr18 |
+| 型号词 | ASIN或竞品型号 | B0########, B0######## |
 | 长尾词 | 多词组合 | powered usb hub, usb 3.0 hub powered |
 
 **聚合统计维度**：
@@ -1091,7 +1091,7 @@ ACOS = CPC ÷ (CVR × 客单价)
 - 过滤方法：`if row['开始日期'] != row['结束日期']: skip`（仅形态B适用）
 - 校验：有效行花费总和应接近广告表现文件的总花费（偏差<10%为正常）
 
-**ASIN匹配规则**：广告活动名称格式通常为 `{ASIN}-{广告组名}`，如 `B0CHDSH9LD-A107-定位2`，通过提取前10位字符（ASIN长度）来匹配。
+**ASIN匹配规则**：广告活动名称格式通常为 `{ASIN}-{广告组名}`，如 `B0########-A107-定位2`，通过提取前10位字符（ASIN长度）来匹配。
 
 **重要：ASIN归属验证规则**
 - 搜索词中出现的ASIN必须与店铺产品列表对比，确认是"自家"还是"竞品"
