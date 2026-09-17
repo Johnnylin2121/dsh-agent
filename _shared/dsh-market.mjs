@@ -72,13 +72,41 @@ async function cmdSina(symbolsArg) {
   if (!r.ok) throw new Error(`HTTP ${r.status}`)
   const buf = Buffer.from(await r.arrayBuffer())
   const text = decodeGbk(buf)
+  const num = (v) => (v === undefined || v === null || v === '' ? null : Number(v))
+  const pctOf = (price, base) => (num(base) ? (((num(price) - num(base)) / num(base)) * 100).toFixed(2) : null)
   const out = []
   for (const line of text.split('\n').filter(Boolean)) {
     const m = line.match(/var hq_str_(\w+)="([^"]*)"/)
     if (!m) continue
-    const [name, open, prevClose, price, high, low, bid, ask, volume, amount] = m[2].split(',')
-    const pct = prevClose ? (((price - prevClose) / prevClose) * 100).toFixed(2) : null
-    out.push({ symbol: m[1], name, open, prevClose, price, high, low, bid, ask, volume, amountYuan: amount, pct })
+    const symbol = m[1]
+    const f = m[2].split(',')
+    if (/^nf_/i.test(symbol)) {
+      // 国内期货 nf_（44 字段）：[0]名称 [1]时间 [2]开盘 [3]最高 [4]最低 [6]买价 [7]卖价 [8]最新 [10]昨结算 [13]持仓 [14]成交量
+      const [name, time, open, high, low, , bid, ask, price, , prevSettle, , , openInterest, volume] = f
+      out.push({
+        symbol, kind: 'nf', name, time,
+        price: num(price), open: num(open), high: num(high), low: num(low),
+        bid: num(bid), ask: num(ask), prevClose: num(prevSettle), prevSettle: num(prevSettle),
+        openInterest: num(openInterest), volume: num(volume), pct: pctOf(price, prevSettle),
+      })
+    } else if (/^hf_/i.test(symbol)) {
+      // 国际期货 hf_（15 字段）：[0]最新 [2]买价 [3]卖价 [4]最高 [5]最低 [6]时间 [7]昨收 [8]开盘 [12]日期 [13]名称
+      const [price, , bid, ask, high, low, time, prevClose, open, , , , date, name] = f
+      out.push({
+        symbol, kind: 'hf', name, date, time,
+        price: num(price), open: num(open), high: num(high), low: num(low),
+        bid: num(bid), ask: num(ask), prevClose: num(prevClose), pct: pctOf(price, prevClose),
+      })
+    } else {
+      // A 股/指数 10 字段：[0]名称 [1]今开 [2]昨收 [3]最新 [4]最高 [5]最低 [6]买一 [7]卖一 [8]成交量 [9]成交额
+      const [name, open, prevClose, price, high, low, bid, ask, volume, amount] = f
+      out.push({
+        symbol, kind: 'cn', name,
+        price: num(price), open: num(open), high: num(high), low: num(low),
+        bid: num(bid), ask: num(ask), prevClose: num(prevClose),
+        volume: num(volume), amountYuan: num(amount), pct: pctOf(price, prevClose),
+      })
+    }
   }
   console.log(JSON.stringify(out, null, 0))
 }
