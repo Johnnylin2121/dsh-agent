@@ -56,8 +56,20 @@ pwsh -NoProfile -File "$HOME\.dsh\git-hooks\push-scan.ps1" -Full
 - 引擎缺失时 hook **放行并警告**（fail-open）；要改严格模式，编辑 pre-push 把
   WARNING 分支的 `exit 0` 改为 `exit 1`
 
+**退出码语义（hook ↔ 引擎已对齐）**：
+
+| 引擎退出码 | 含义 | pre-push 行为 |
+|---|---|---|
+| `0` | 扫描干净 | 放行 |
+| `1` | 命中泄露 | **阻止推送** |
+| `2+` | 引擎错误（两引擎都不可用 / 脚本异常）→ 本次未完成扫描 | **放行 + 告警**（提示手动补扫） |
+
+降级梯度：缺 `gitleaks` → 仅 9 条正则（exit 仍按结果）；缺 `rg` → 仅 gitleaks + 告警；
+**两者都缺 → exit 2（未扫描，放行但不可信）**。
+
 ## 已知限制
 
 - DSH 沙箱会话内 msys sh 无法启动，`git push` 会 fail-closed 报错——正式推送在普通终端执行
 - hook 只扫增量提交；已在历史中的内容不受影响（需 git filter-repo 重写）
-- gitleaks 未安装时仅靠正则，key 格式覆盖弱一档
+- gitleaks 未安装时仅靠正则，key 格式覆盖弱一档；ripgrep 未安装时正则引擎整体跳过（仅 gitleaks）
+- 两引擎都不可用时引擎退出码为 2 → hook 放行并告警（fail-open），此时**必须人工补扫**

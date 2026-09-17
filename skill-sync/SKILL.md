@@ -118,7 +118,7 @@ pwsh -NoProfile -File "$HOME/.dsh/git-hooks/push-scan.ps1" -Range "origin/main..
 |------|------|
 | `OK`（exit 0） | 继续 Step 4 |
 | 拦截（exit 1） | **停止流程**。逐条向用户展示命中项，按「处置指引」协助处理：真泄露→脱敏后 amend/新 commit；误报→写入仓库根 `.pushscan-allow`（每行一条正则）后重扫 |
-| 引擎错误（exit 2） | 向用户报告错误，**默认停止**，除非用户明确指示继续 |
+| 引擎错误（exit 2） | 向用户报告错误 + 附补扫命令（`push-scan.ps1 -Full`），**默认停止**，除非用户明确指示继续。⚠️ 此时代码**未被扫描**（缺 rg/gitleaks 或脚本异常）——hook 层对 exit 2 是"放行 + 告警"，**不会兜住**，必须人工补扫 |
 
 **红线**：
 - ❌ 不得自行使用 `git push --no-verify` 绕过 hook；仅当用户明确说"跳过扫描推送"时才可用，且必须复述命中项让用户知情

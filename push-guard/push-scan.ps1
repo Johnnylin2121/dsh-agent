@@ -6,6 +6,7 @@
 #   暂存区扫描:        push-scan.ps1 -Staged
 #   指定范围:          push-scan.ps1 -Range "abc123..def456"
 # 退出码: 0=干净, 1=发现泄露(阻止), 2=内部错误(不阻止,报告)
+#   注意: 2 表示"引擎没跑完", 不代表安全 —— pre-push 会放行并告警, 需人工补齐(-Full 重扫)
 [CmdletBinding()]
 param(
   [string]$LocalSha,
@@ -55,6 +56,21 @@ $patchFile = Join-Path ([System.IO.Path]::GetTempPath()) ("pushscan-" + [guid]::
 $patch | Set-Content -Path $patchFile -Encoding UTF8
 $findings = New-Object System.Collections.Generic.List[string]
 
+# ── 引擎2 依赖探测: rg 缺失时显式降级(仅跑 gitleaks), 不再让 CommandNotFoundException 掀翻整个 try 变成 exit 2 ──
+$rgExe = $null
+$rgCmd = Get-Command rg -ErrorAction SilentlyContinue
+if ($rgCmd) { $rgExe = $rgCmd.Source }
+if (-not $rgExe) {
+  $rgExe = @(
+    '/opt/homebrew/bin/rg',
+    '/usr/local/bin/rg',
+    "$env:LOCALAPPDATA\Microsoft\WinGet\Links\rg.exe"
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if (-not $rgExe) {
+  Write-Host '[push-scan] WARNING: ripgrep(rg) 未安装 — 9 条自定义正则已跳过, 仅 gitleaks 生效。安装: brew install ripgrep' -ForegroundColor DarkYellow
+}
+
 try {
   # ── 引擎1: gitleaks (若安装; winget 安装后新进程 PATH 可能未刷新, 做路径回退) ──
   $gitleaks = Get-Command gitleaks -ErrorAction SilentlyContinue
@@ -81,6 +97,11 @@ try {
   }
 
   # ── 引擎2: 自定义正则 (中文隐私场景) ──
+  if (-not $gitleaks -and -not $rgExe) {
+    Write-Host '[push-scan] 引擎错误: gitleaks 与 ripgrep 均不可用 — 本次未做任何扫描(放行但不可信)。' -ForegroundColor DarkYellow
+    Write-Host '[push-scan] 安装: brew install ripgrep gitleaks' -ForegroundColor DarkYellow
+    exit 2
+  }
   # 注意: rg(Rust regex) 不支持 lookahead/lookbehind, 排除逻辑放后置过滤
   $patterns = @(
     @{ id='PRICE-ACTION';  re='(\d+\.\d{1,3})\s*(入场|止损|止盈|买入|卖出)|(入场价|止损价|成本价|买入价|卖出价)\s*[:：=]?\s*\d' }
@@ -94,7 +115,8 @@ try {
     @{ id='KEY-FALLBACK';  re='sk-[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36}|AKIA[0-9A-Z]{16}|ntn_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xq_a_token=[A-Za-z0-9%_-]{20,}' }
   )
   foreach ($p in $patterns) {
-    $hits = & rg -N --no-heading -e $p.re $patchFile 2>$null
+    if (-not $rgExe) { break }   # rg 缺失: 正则引擎整体跳过(已在上方警告)
+    $hits = & $rgExe -N --no-heading -e $p.re $patchFile 2>$null
     if ($LASTEXITCODE -eq 0 -and $hits) {
       if ($p.exclude) { $hits = @($hits | Where-Object { $h = $_; $h -notmatch $p.exclude }) }
       foreach ($h in $hits) { $findings.Add("REGEX     rule=$($p.id)  $h") }
@@ -127,7 +149,7 @@ try {
     exit 1
   }
 
-  Write-Host "[push-scan] OK $rangeDesc (gitleaks: $(if($gitleaks){'on'}else{'off'}), 正则: $($patterns.Count) 条)"
+  Write-Host "[push-scan] OK $rangeDesc (gitleaks: $(if($gitleaks){'on'}else{'off'}), 正则: $(if($rgExe){"$($patterns.Count) 条"}else{'跳过(rg 缺失)'}))"
   exit 0
 } catch {
   Write-Host "[push-scan] 引擎错误(未拦截): $_" -ForegroundColor DarkYellow
