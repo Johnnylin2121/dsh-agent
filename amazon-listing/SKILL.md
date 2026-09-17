@@ -103,9 +103,16 @@ Methodology — script outputs the weighted 1-gram/2-gram ranking only; the agen
 2. Script count: 1-gram + 2-gram with **title ×3 weight, bullets ×1**; output ranked list.
 3. Agent completes (script does NOT implement): merge same-root variants (charger/charging → charger primary); mark terms present in ≥3 competitor titles as strong core candidates.
 4. Agent takes top 10 as core keywords (mark those that define the category identity vs mere attributes).
+5. **Demand-type tagging (需求类型, added 2026-09-17)** — tag each keyword with one of six types, then report the distribution:
+   `品类词 category` / `功能词 function` / `属性词 attribute` / `材质词 material` / `场景词 scenario` / `人群词 audience`.
+   - Purpose: a keyword list without demand types hides *where* the uncovered demand is. Scenario/audience words are the ones competitors usually miss and the ones that also feed bullet copy and (later) off-Amazon content angles.
+   - Rule: if scenario or audience words exist among the top 10, they MUST be carried into Step 3 (see Step 3 rule 6). If a type is empty, say so — do not invent words to fill it.
+   - Source: whitepaper《亚马逊流量增长白皮书》L211 / L864 / L627-633 (品类/功能/属性/材质/场景/人群六分类).
 
 ### Output (Section 1 of the .md file)
-Markdown table: Rank / Keyword / Score / Title Count / Bullet Count / Cross-Competitor, plus Variants table, plus competitor links list.
+Markdown table: Rank / Keyword / Score / Title Count / Bullet Count / Cross-Competitor / **需求类型 (Demand Type)**, plus a **demand-type distribution summary**, plus Variants table, plus competitor links list.
+
+**需求类型分布摘要** (added 2026-09-17): one line per type — `品类词 n 个 / 功能词 n / 属性词 n / 材质词 n / 场景词 n / 人群词 n`, and flag any type at 0 as a coverage gap to investigate (not necessarily a defect — some categories genuinely have no audience words).
 
 **STOP — ask user to confirm keywords before Step 2.**
 
@@ -156,6 +163,8 @@ Markdown table: Rank / Keyword / Score / Title Count / Bullet Count / Cross-Comp
 - Bullet 4: dimensions/compatibility details
 - Bullet 5: package contents / warranty / bonus
 - One benefit group per bullet; never duplicate title/highlight phrasing verbatim (paraphrase to extend coverage, not to stuff).
+- **Rule 6 (added 2026-09-17) — scenario & audience coverage**: if Step 1 tagged any `场景词 scenario` or `人群词 audience` keywords, the 5 bullets MUST cover **at least one scenario word and at least one audience word** (natural phrasing, never keyword-stuffed). These types rarely fit the 75-char title and are the main reason bullets exist.
+  - Verifiable check: list the placed scenario/audience keywords in the per-bullet keyword placement table; if none were placed, state why (no such keyword found in Step 1, or product genuinely has no scenario/audience differentiation).
 
 Append Section 3 to the .md file with per-bullet char counts + keyword placement table. **STOP — confirm before Step 4.**
 
@@ -166,7 +175,7 @@ Append Section 3 to the .md file with per-bullet char counts + keyword placement
 > 核心原则：后台搜索词**先于广告**完成，上架即用满字节；报表数据只做后续优化替换，不被动等待。禁止碎片词，只装**完整、有明确指向、与产品强相关**的词组。
 
 1. **素材源（优先级，零臆造）**：
-   ① 卖家精灵 overlay「自然流量词/关键词调研」——本 ASIN 真实排名词组（含流量占比/月搜索量，最高优先）
+   ① 卖家精灵插件「反查关键词」面板 —— 本 ASIN 真实排名词组（字段：关键词 / **流量来源** / 贡献流量 / 周搜索排名 / 月搜索量；入口与实测样例见 Step 5，2026-09-17 实测）
    ② ABA/关键词调研数据文件
    ③ 竞品标题词形 + 评论客户语言
 2. **形态 = 完整词组（phrase）**：客户搜的是有指向的词组（如 "teclado para tablet samsung"），不是孤立碎片。**禁止**单介词/单数字/单后缀碎片（plus、con、ñ、2m 单独出现均无效）。搭配词必须组成有指向的短语。
@@ -190,6 +199,12 @@ After the new listing goes live and accumulates ~1–2 weeks of ad data:
 2. High-efficiency uncovered terms → consider promoting into title/highlights on next iteration.
 3. If old long-tail keywords still spend without conversion → negative-keyword them or pause ad groups.
 4. Record results into the same .md file (Section 5) as a closed loop.
+5. **Organic ranking gap re-check (自然位缺口回检, added 2026-09-17)** — cross-skill step with `amazon-ad-analysis` Phase 5.4-B:
+   - If the newly placed core keywords are still **only carried by paid traffic** after 1–2 weeks (high share of ad clicks on that term, but no organic ranking in the 卖家精灵 overlay), the listing did not actually earn the organic slot. Before writing more ads: re-check relevance expression (title/bullets phrasing vs the actual search intent) and iterate the listing.
+   - **Measured path (2026-09-17 verified)**: load `skill browser-skill` first (the six `browser_*` tools are lazily revealed), then `browser_session start` → open the Amazon product page → `browser_inspect observe` → click the 卖家精灵 plugin panel's 「反查关键词」. Verified working on amazon.com.mx with a logged-in account.
+   - **Fields to read**: 「流量来源」(`自然位` vs `广告位` — this is the `no_organic`/`fully_paid` equivalent), 「贡献流量」, 「广告曝光 / 自然曝光」, 「周搜索排名」(page + position).
+   - If unavailable (not logged in, plan limits, unsupported marketplace, no browser) → record "B级数据未取到，自然位未验证" and do NOT substitute a guess.
+   - Record the outcome in Section 5 alongside the ad data.
 
 ---
 
