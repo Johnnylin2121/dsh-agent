@@ -127,3 +127,4 @@
 - **2026-09-16 第一轮**：`gh` 登录后全量巡检 5 仓 + 本地 4 个副本 + 未纳管资产；补齐 skill-sync 注册表
 - **2026-09-16 第二轮**：提交并推送 preset 修复（`text`→`prefix`）；`agent-skill` 加冻结说明并归档；删除 `mood-notes` 的 `master`；5 仓补 description/topics；新增 `check-drift.ps1`；`gh auth setup-git` 打通 HTTPS 推送
 - **2026-09-16 第三轮（双端制）**：`LICENSE`(MIT) + `.gitattributes`(LF) + `tools/validate-repo.mjs` + CI 门禁；技能内 Windows 写死路径全部改为两端写法；新增 `DUAL-END.md` 与 `_shared/PORTABILITY.md`；确定"工作区=临时区、不留存"策略
+- **2026-09-17 第四轮（Windows 端巡检回填）**：`~/.dsh/skills` 补 upstream 跟踪（`main` → `origin/main`）；全局 `core.autocrlf=false`、`core.precomposeunicode=true`；`push-guard` 退出码语义对齐——`pre-push` 区分 `1=命中泄露(阻止)` 与 `2+=引擎错误(放行+告警+人工补扫)`，`push-scan.ps1` 增加 rg 缺失显式降级（仅 gitleaks + 警告）与"两引擎全缺 → exit 2"，报告行打印引擎状态；`INSTALL.md`/`DUAL-END.md`/`skill-sync` 文档同步；`DUAL-END.md` macOS 清单补齐旧 clone 核对、git-hooks 先落盘、ripgrep 必装、presets 克隆（提交 `6f75d5a`）
