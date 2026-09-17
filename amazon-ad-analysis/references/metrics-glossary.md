@@ -226,11 +226,12 @@ TACOS = 广告花费 ÷ 总销售额
 > 阈值一律引用 `config/analysis_config.yaml → thresholds.concentration / paid_natural`，本表不另行定义。
 
 ### 广告活动集中度（Ad Concentration）
-- **定义**：Top1 活动花费占比 = 最大活动花费 ÷ 该 ASIN 广告总花费；Top3 = 前三活动合计占比；HHI = Σ(各活动花费占比²)
-- **含义**：预算是否押在单一广告活动上。集中度过高时，单点活动失速 → 整体广告流量同步塌陷
+- **定义**：Top1 活动花费占比 = 最大活动花费 ÷ 该 ASIN 广告总花费；HHI = Σ(各活动花费占比²)
+- **归一化判据**：`top1_ratio` = Top1占比 **× 活动数 N**；`hhi_ratio` = HHI **× N**（N 个活动均分时两者均为 1.0）
+- **含义**：预算是否押在单一广告活动上。集中度过高时，单点活动失速 → 整体广告流量同步塌陷。倍数 2.0 = 最大活动预算是均分水平的两倍
 - **口径**：**花费口径**（白皮书 L316-324 用流量口径，两者数值不可直接对比）
-- **健康标准**：Top1 ≤ `concentration.top1_spend_share_risk` 且 HHI ≤ `concentration.hhi_risk`（Top3 > `top3_watch` 为观察线）
-- **阈值锚点**：5 个历史 ASIN 实测 top1 = 32.3 / 36.2 / 37.0 / 66.0 / 75.0%，HHI 0.258 ~ 0.581（`[待校准]`）
+- **健康标准**：`top1_ratio` < `concentration.top1_ratio_watch` 为分散；≥ `top1_ratio_risk` 为单点依赖（`hhi_ratio` 同向时升级确认）
+- **阈值锚点**：倍数实测 = 5.94 / 3.75 / 1.85 / 1.81 / 1.29（5 个历史 ASIN）→ 三分清晰；校准机制见 config `thresholds.calibration`
 - **用途**：Phase 2D 诊断 + `diagnosis-rules.md` 规则 9.1；**放量前的前置检查**
 
 ### 付费-自然资产化（Paid → Organic Assetization）
@@ -241,7 +242,7 @@ TACOS = 广告花费 ÷ 总销售额
 - **用途**：Phase 5.4-A + Phase 6 D0 生命周期判据之一
 
 ### 核心词自然位缺口（Organic Ranking Gap）
-- **定义**：某搜索词点击占该 ASIN 总广告点击 ≥ `paid_natural.core_term_paid_click_share`，**且**在卖家精灵插件「反查关键词」面板中「流量来源」仅显示 `广告位`（无 `自然位`），或「周搜索排名」在第 3 页之后
+- **定义**：某搜索词点击占该 ASIN 总广告点击 ≥ `paid_natural.core_term_paid_click_share`，**且**在 **Sorftime** 插件「反查关键词」面板中「流量来源」仅显示 `广告位`（无 `自然位`），或「周搜索排名」在第 3 页之后
 - **含义**：核心需求只有付费承接，尚未沉淀为自然流量资产（白皮书 L308 的 `no_organic` / `fully_paid`）
-- **数据前提**：**B 级**（需卖家精灵插件面板 + 浏览器通道，入口与字段名见 SKILL Phase 5.4-B 实测表）；不可得时降为 C 级，**只登记不给结论**
+- **数据前提**：**B 级**（需 **Sorftime** 插件面板 + 浏览器通道，入口与字段名见 SKILL Phase 5.4-B 实测表）；不可得时降为 C 级，**只登记不给结论**
 - **用途**：Phase 5.4-B + Listing 迭代（`amazon-listing` Step 5 回检）
