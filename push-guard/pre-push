@@ -4,6 +4,7 @@
 # 跳过本仓库: git config pushscan.skip true ; 临时跳过: git push --no-verify
 # 跨平台: Windows/macOS 通用。引擎缺失时放行并警告(fail-open);
 #         若需严格模式(fail-closed), 把下方 SKIP_MSG 分支的 exit 0 改为 exit 1。
+# 退出码语义: push-scan 0=干净(放行) / 1=发现泄露(阻止) / 2+ =引擎错误(放行+告警, 需人工补扫)
 
 zero=0000000000000000000000000000000000000000
 
@@ -23,10 +24,19 @@ fi
 }
 
 while read local_ref local_sha remote_ref remote_sha; do
-  # 删除远程分支: 无需扫描
+  # 删除远程分支 / 空行: 无需扫描
+  [ -z "$local_sha" ] && continue
   [ "$local_sha" = "$zero" ] && continue
   # 非分支 ref (tag 等): 也扫, 内容可能含新对象
   "$PS" -NoProfile -ExecutionPolicy Bypass -File "$HOME/.dsh/git-hooks/push-scan.ps1" \
-    -LocalSha "$local_sha" -RemoteSha "$remote_sha" || exit 1
+    -LocalSha "$local_sha" -RemoteSha "$remote_sha"
+  rc=$?
+  if [ "$rc" -eq 1 ]; then
+    exit 1                              # 命中泄露: 阻止
+  elif [ "$rc" -ne 0 ]; then
+    # 引擎错误(如缺 rg / 脚本异常): 按 push-scan 声明的语义不阻止, 但告警 + 要求人工补扫
+    echo "[pre-push] WARNING: push-scan 引擎错误 (exit $rc) - 本次未完成扫描, 已放行。"
+    echo "[pre-push]          手动补扫: pwsh ~/.dsh/git-hooks/push-scan.ps1 -Full"
+  fi
 done
 exit 0

@@ -24,14 +24,18 @@
 - 本地插件补丁：`reapply-all.ps1` 一键重铺（deepeye / xueqiu / rss-digest）
 
 **macOS（接入清单）**
+0. ⚠️ **先查旧 clone**：若 `~/.dsh/skills/.git` 已存在，先 `git fetch origin` 并比对 `HEAD` vs `origin/main`——不一致说明是 2026-09-15 历史重写前的旧克隆，**只许 `git reset --hard origin/main`（先备份），禁止 pull/push**
 1. `git clone git@github.com:Johnnylin2121/dsh-agent.git ~/.dsh/skills`（GitHub 上先加该机 SSH key；或用 `gh auth login` 后 `gh auth setup-git` 走 HTTPS）
+   - 另克隆 preset 真源：`git clone git@github.com:Johnnylin2121/dsh-agent-presets.git ~/.dsh/.agent-presets`
 2. 装 DSH 本体 + `dsh web`；插件用 `pwsh ~/.dsh/skills/plugins/restore-plugins.ps1` 恢复（脚本会同步 bundles 并重铺补丁）
-   - 需要 PowerShell：`brew install --cask powershell`
-3. 防护：`git config --global core.hooksPath "$HOME/.dsh/git-hooks"` + `chmod +x ~/.dsh/git-hooks/pre-push`
+   - 需要 PowerShell：`brew install --cask powershell`；**`brew install ripgrep` 必装**（缺则扫描引擎降级/报错）；`gitleaks` 可选
+3. 防护：**先落盘再指路**——`mkdir -p ~/.dsh/git-hooks && cp ~/.dsh/skills/push-guard/pre-push ~/.dsh/skills/push-guard/push-scan.ps1 ~/.dsh/git-hooks/ && chmod +x ~/.dsh/git-hooks/pre-push`，然后 `git config --global core.hooksPath "$HOME/.dsh/git-hooks"`，最后 `pwsh ~/.dsh/skills/push-guard/check-drift.ps1` 必须输出「一致 ✅」
+   - ⚠️ `core.hooksPath` 指向空目录时 git **静默跳过** pre-push = 裸推
    - `pre-push` 是 `/bin/sh` 脚本且**已做跨端判断**：无 `pwsh` 时会放行并警告（fail-open）
-4. `git config core.autocrlf false`（仓库已 `.gitattributes: text=auto eol=lf`）
-5. 本机 `~/.dsh/MEMORY.md`：从模板改一份（vault 路径、shell、python 等按 macOS 填）
-6. 密钥：`setx` 不可用 → 写 `~/.zshrc`，例如 `export DEEPEYE_API_KEY=...`
+   - 退出码语义：引擎 `0`=放行 / `1`=命中泄露并阻止 / `2+`=引擎错误（未完成扫描）→ hook **放行 + 告警**，需人工 `push-scan.ps1 -Full` 补扫
+4. `git config core.autocrlf false`（仓库已 `.gitattributes: text=auto eol=lf`）；`git config core.precomposeunicode true`
+5. 本机 `~/.dsh/MEMORY.md`：本机重建（vault 路径、shell、python 等按 macOS 填）；**Windows 端的 MEMORY.md/settings.yaml 不在同步范围，不要拷**
+6. 密钥：`setx` 不可用 → 写 `~/.zshrc`，例如 `export DEEPEYE_API_KEY=...`（行首留空格避免进 history）
 
 ## 3. 推送协议（两端一致）
 
