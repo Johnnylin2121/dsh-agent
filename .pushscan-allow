@@ -7,3 +7,8 @@ rule=VAULT-PATH.*当前为
 # 删除行带 '-' 前缀仍会被 LOCAL-PATH 命中。仅放行带删除前缀的行, 新增行不受影响。
 rule=LOCAL-PATH\s+-.*python\.exe
 rule=LOCAL-PATH\s+-.*dsh-spill
+# 2026-09-17 脱敏提交 fix(privacy): 本次删除的内容正是真实 ASIN 与持仓价格动作(修复本身),
+# 其删除行带 '-' 前缀, 仍会被 ASIN / PRICE-ACTION 命中(新增行不受影响)。
+# 仅放行带删除前缀的行; 任何新增的 ASIN/价格动作仍会被拦。
+rule=ASIN\s+-
+rule=PRICE-ACTION\s+-
