@@ -105,7 +105,7 @@ Methodology — script outputs the weighted 1-gram/2-gram ranking only; the agen
 4. Agent takes top 10 as core keywords (mark those that define the category identity vs mere attributes).
 5. **Demand-type tagging (需求类型, added 2026-09-17)** — tag each keyword with one of six types, then report the distribution:
    `品类词 category` / `功能词 function` / `属性词 attribute` / `材质词 material` / `场景词 scenario` / `人群词 audience`.
-   - Purpose: a keyword list without demand types hides *where* the uncovered demand is. Scenario/audience words are the ones competitors usually miss and the ones that also feed bullet copy and (later) off-Amazon content angles.
+   - Purpose: a keyword list without demand types hides *where* the uncovered demand is. Scenario/audience words are the ones competitors usually miss and the ones that also feed bullet copy (see Step 3 rule 6).
    - Rule: if scenario or audience words exist among the top 10, they MUST be carried into Step 3 (see Step 3 rule 6). If a type is empty, say so — do not invent words to fill it.
    - Source: whitepaper《亚马逊流量增长白皮书》L211 / L864 / L627-633 (品类/功能/属性/材质/场景/人群六分类).
 
@@ -175,7 +175,7 @@ Append Section 3 to the .md file with per-bullet char counts + keyword placement
 > 核心原则：后台搜索词**先于广告**完成，上架即用满字节；报表数据只做后续优化替换，不被动等待。禁止碎片词，只装**完整、有明确指向、与产品强相关**的词组。
 
 1. **素材源（优先级，零臆造）**：
-   ① 卖家精灵插件「反查关键词」面板 —— 本 ASIN 真实排名词组（字段：关键词 / **流量来源** / 贡献流量 / 周搜索排名 / 月搜索量；入口与实测样例见 Step 5，2026-09-17 实测）
+   ① **Sorftime** 插件「反查关键词」面板 —— 本 ASIN 真实排名词组（字段：关键词 / **流量来源** / 贡献流量 / 周搜索排名 / 月搜索量；入口与实测样例见 Step 5，2026-09-17 实测。⚠️ 是 Sorftime，不是卖家精灵）
    ② ABA/关键词调研数据文件
    ③ 竞品标题词形 + 评论客户语言
 2. **形态 = 完整词组（phrase）**：客户搜的是有指向的词组（如 "teclado para tablet samsung"），不是孤立碎片。**禁止**单介词/单数字/单后缀碎片（plus、con、ñ、2m 单独出现均无效）。搭配词必须组成有指向的短语。
@@ -200,8 +200,8 @@ After the new listing goes live and accumulates ~1–2 weeks of ad data:
 3. If old long-tail keywords still spend without conversion → negative-keyword them or pause ad groups.
 4. Record results into the same .md file (Section 5) as a closed loop.
 5. **Organic ranking gap re-check (自然位缺口回检, added 2026-09-17)** — cross-skill step with `amazon-ad-analysis` Phase 5.4-B:
-   - If the newly placed core keywords are still **only carried by paid traffic** after 1–2 weeks (high share of ad clicks on that term, but no organic ranking in the 卖家精灵 overlay), the listing did not actually earn the organic slot. Before writing more ads: re-check relevance expression (title/bullets phrasing vs the actual search intent) and iterate the listing.
-   - **Measured path (2026-09-17 verified)**: load `skill browser-skill` first (the six `browser_*` tools are lazily revealed), then `browser_session start` → open the Amazon product page → `browser_inspect observe` → click the 卖家精灵 plugin panel's 「反查关键词」. Verified working on amazon.com.mx with a logged-in account.
+   - If the newly placed core keywords are still **only carried by paid traffic** after 1–2 weeks (high share of ad clicks on that term, but 「流量来源」 shows only `广告位` in the Sorftime panel), the listing did not actually earn the organic slot. Before writing more ads: re-check relevance expression (title/bullets phrasing vs the actual search intent) and iterate the listing.
+   - **Measured path (2026-09-17 verified)**: load `skill browser-skill` first (the six `browser_*` tools are lazily revealed), then `browser_session start` → open the Amazon product page → `browser_inspect observe` → click the **Sorftime** plugin panel's 「反查关键词」. Plugin identity: `Sorftime Save`, extension id `aadiiicebnjmjmibjengdohedcfeekeg` (v1.4.8.7). Verified working on amazon.com.mx with a logged-in account. NOT Sellersprite (卖家精灵) — the two are similar but distinct.
    - **Fields to read**: 「流量来源」(`自然位` vs `广告位` — this is the `no_organic`/`fully_paid` equivalent), 「贡献流量」, 「广告曝光 / 自然曝光」, 「周搜索排名」(page + position).
    - If unavailable (not logged in, plan limits, unsupported marketplace, no browser) → record "B级数据未取到，自然位未验证" and do NOT substitute a guess.
    - Record the outcome in Section 5 alongside the ad data.
