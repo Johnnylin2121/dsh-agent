@@ -10,6 +10,8 @@ description: >
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # 实时矛盾检测
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool；write 与 task 分轮，禁止捆绑。②终值/复盘已在上下文则不重拉、不重读本 SKILL。③失败 1 次→减为单 call 或文字汇报。④本 skill 不依赖 `xueqiu_*`；若需交叉校验行情，用东财+新浪+dsh-market，标注「雪球不可用」。
+
 ## 定位
 
 与 `obsidian-reconcile` 互补：

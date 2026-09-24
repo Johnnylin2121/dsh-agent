@@ -47,7 +47,18 @@ if (Test-Path (Join-Path $d 'patch-rss-digest.mjs')) {
     $lines.Add(("{0} rss-digest    {1}" -f $(if ($code -eq 0) { 'OK   ' } else { 'FAIL ' }), $tail))
 } else { $lines.Add('SKIP  rss-digest   无 patch-rss-digest.mjs') }
 
-# ---- 4) context-doctor：link: 指向工作区补丁版，不需要铺，只校验可达 ----
+# ---- 4) peak-cost-mode：隐藏底部状态条（幂等脚本）----
+$d = Join-Path $patches 'dsh-peak-cost-mode'
+if (Test-Path (Join-Path $d 'patch-peak-cost-dock.mjs')) {
+    Push-Location $d
+    $out = node patch-peak-cost-dock.mjs 2>&1
+    $code = $LASTEXITCODE
+    Pop-Location
+    $tail = ($out | Where-Object { $_ -match 'PATCHED|VANILLA|SKIP|FAIL' } | Select-Object -Last 3) -join ' / '
+    $lines.Add(("{0} peak-cost     {1}" -f $(if ($code -eq 0) { 'OK   ' } else { 'FAIL ' }), $tail))
+} else { $lines.Add('SKIP  peak-cost    无 patch-peak-cost-dock.mjs') }
+
+# ---- 5) context-doctor：link: 指向工作区补丁版，不需要铺，只校验可达 ----
 $cd = Join-Path $nm 'dsh-context-doctor'
 $lines.Add(("{0} context-doctor link 可达={1}" -f $(if (Test-Path (Join-Path $cd 'lib/index.js')) { 'OK   ' } else { 'FAIL ' }), (Test-Path (Join-Path $cd 'lib/index.js'))))
 

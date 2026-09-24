@@ -7,6 +7,8 @@ dependencies: []
 
 # Amazon 广告分析与经营分析
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool。②Phase 分轮串行：每轮最多推进一个 Phase（或只读不写），禁止一轮捆多 Phase。③会话内不重复重读本 SKILL。④Listing 抓取用内置降级（Phase 4A），不调用不存在的 scraper skill。
+
 ## 核心原则
 
 1. **数据驱动**：所有分析和建议必须有数据支撑，拒绝脑补和主观臆断。**每个数字必须可追溯到原始数据文件的具体行。**
@@ -112,7 +114,7 @@ Phase 6  推广计划（广告优化 / Listing优化 / 促销），按 D0/D/E/F 
 Phase 7  归档：按 references/output-spec.md 生成 Markdown + 9-sheet Excel → 跑 scripts/validate_output.py 门禁 → 写校准台账
 ```
 
-并行原则：Phase 4 的 4A/4B/4C 无依赖，必须并行发起（或后台任务），避免串行等待；Phase 5 只等 4A 与 4C。
+并行原则（环境适配覆盖）：Phase 4 的 4A/4B/4C 逻辑上无依赖，但**本环境禁止一轮多路同发**——每轮只推进一个批次（4A→4B→4C 串行分轮），完成再进下一 Phase；Phase 5 等 4A+4C 全部完成后再开。
 
 ---
 

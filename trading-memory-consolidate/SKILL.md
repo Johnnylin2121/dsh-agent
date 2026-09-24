@@ -5,6 +5,8 @@ description: 交易记忆批量审阅、冲突归因与记忆总表生成工作�
 
 # 交易记忆归纳整理工作流（trading-memory-consolidate）
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool；全量审阅按文件批次分轮，禁止一轮读完/写完全部。②git **分轮**：`status` → `add` → `commit` → `push`，禁止一行捆 `add&&commit&&push`。③会话内不重复重读本 SKILL；无 `obsidian_*` → 文件工具。
+
 > **Vault 路径**：`{VAULT_PATH}`（占位符，由 agent 从 MEMORY.md 读取本机实际路径后替换）。
 > ⚠️ Vault 可能在 OneDrive 下——批量移动用 pwsh 安全；单篇写入分批。
 > 📅 立法来源：2026-09-07 首次全量整理（22 篇 → 八区总表 + 归档），方法论与坑全部来自实战。
@@ -119,7 +121,13 @@ Get-ChildItem "{VAULT_PATH}\交易体系\交易记忆" -Filter "2026-*.md" | Sor
 ## 8. Step 6：git 推送（skill 变更时）
 
 ```bash
-cd ~/.dsh/skills && git add -A && git commit -m "feat: ..." && git push origin main
+```bash
+# 禁止一行捆绑；每轮只做一步
+cd ~/.dsh/skills && git status          # 轮1
+git add -A                              # 轮2
+git commit -m "feat: ..."               # 轮3
+git push origin main                    # 轮4（或下一轮）
+```
 ```
 
 （SSH 443 已配置；push 前向用户确认 commit 内容）
