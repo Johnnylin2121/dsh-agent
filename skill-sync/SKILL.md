@@ -10,6 +10,8 @@ description: >
 
 # Skill Sync
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool。②git 操作**分轮**：`status/log` → `add` → `commit` → `push` → 确认，禁止一轮捆 `add+commit+push`。③会话内不重复重读本 SKILL。
+
 管理本地 skill 目录与 GitHub 远程仓库的同步。
 **所有推送必须先过隐私扫描**（见 Step 3.5），扫描引擎与 git pre-push hook 配套。
 

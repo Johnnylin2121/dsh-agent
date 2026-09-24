@@ -8,6 +8,8 @@ description: >
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # 个股深度扫描
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool；Step 2 八项**串行分轮**，禁止「并行获取数据」多路同发。②无 `obsidian_*` → 文件工具写入，不探测。③会话内不重复重读本 SKILL；失败 1 次→减负单 call。
+
 ## 触发条件
 
 用户说以下任一短语时触发：
@@ -32,22 +34,22 @@ description: >
 | 最新财务数据 | 东方财富 | `emweb.securities.eastmoney.com` |
 | 舆情/新闻 | web search | `"{股票名}" site:eastmoney.com OR site:cls.cn OR site:10jqka.com.cn` |
 
-## 数据多源校验（东财口径基准 + 新浪/雪球交叉）
+## 数据多源校验（东财口径基准 + 新浪交叉；雪球本环境跳过）
 
-> ⚠️ **本机 Windows schannel 出站 TLS 曾损坏**，curl/Invoke-WebRequest 不可用；统一用 `dsh-market.mjs`（node.fetch/OpenSSL）；**DSH 工具面的 `xueqiu_*` 工具可用**（quote/kline/search），纳入交叉源：
+> ⚠️ **本机 Windows schannel 出站 TLS 曾损坏**，curl/Invoke-WebRequest 不可用；统一用 `dsh-market.mjs`（node.fetch/OpenSSL）。**本环境无 `xueqiu_*`（2026-09-22 永久跳过）→ 三源 = 东财 + 新浪 `sina` + `dsh-market`**；禁止调用 xueqiu_quote/kline，禁止写「雪球交叉必跑」。
 > ```powershell
 > $MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
 > node "$MK" index / stocks / sector / sina / kline / get "<url>"
 > ```
 
-- **行情/技术面**：主用东方财富（`stocks`，口径基准），用 `sina`（实时含买卖盘）与 `xueqiu_quote/kline` **交叉复核**；K线走 `kline`（无图，纯数据）。
+- **行情/技术面**：主用东方财富（`stocks`，口径基准），用 `sina`（实时含买卖盘）**交叉复核**；K线走 `kline`（无图，纯数据）。**无 xueqiu_quote/kline**。
 - **个股主力资金**：`dsh-market.mjs` **无个股资金子命令**（仅 index/stocks/sector/sina/kline/get）——用**三层代理**：①板块资金（`sector`）②K线量能趋势（`kline`，价量背离判断）③Vault 历史复盘主力记录（`交易体系/交易记忆/`+复盘，如南山 8/17-8/20 主力序列）；最后可提示用户用交易终端复核。
 - **舆情/事件核实**：`web_search`（优先）+ `node "$MK" get "<网页>"` 补充；**商品/公告/事件异动时（如期货单日大幅波动、公司公告突发）必须 web_search 核实驱动再写入扫描**——8/26 巴西复产核实即靠此（8/17 减产催化 1 周内回吐的完整证据链）。
 - **代码/标的名定位**：`node "$MK" get "https://searchapi.eastmoney.com/api/suggest/get?input={名}&type=14&token=D43BF722C8E33BDC906FB84D85E326E8"`，或让用户确认；`{VAULT_PATH}/wiki/entities/` 找不到对应 entity 时优先这样做。
 - **冲突规则（硬性）**：多源数值不一致 → 在扫描报告"基本面快照 / 技术面"中**显著标注**（如 `⚠️ 数据冲突：东财 vs 新浪`），**不自动取信任一**；估值/财务类以东方财富口径为准。
 - **机构评级接口**：`data.eastmoney.com/report/stock/{code}.html` 常返回空（8/21 实测 RPT_RES_REPORT 无数据）——**拿不到时机构动态栏以自评替代并标注"自评"**，不硬等。
 - **公告接口**：`data.eastmoney.com/notices/stock/{code}.html` 若 `get` 返回空，改用 np-anotice 公告接口或 web_search 补齐（近30天标题+类型即可）。
-- 写入扫描文件用 `obsidian_write`（已装 dsh-obsidian 时）。
+- 写入扫描文件：有 `obsidian_*` 用 `obsidian_write`；否则直接 `write` 文件工具，不探测、不重试。
 
 ## 执行流程
 
@@ -62,9 +64,10 @@ description: >
   - **首次扫描**：`wiki/entities/` 无该标的 `*-深度扫描-*.md` → 全量建档（输出完整基本面/公告/资金/技术/商品锚）
   - **增量复扫**：存在基线文件（如 `南山铝业-深度扫描-2026-08-21.md`）→ **先读基线**，输出聚焦：「基线 vs 现状」支柱对比 + 逻辑验证结论 + 规则触发对照（不重复全量收集）
 
-### Step 2: 并行获取数据
+### Step 2: 分轮获取数据（禁并行）
 
 > ⚠️ **本机 HTTPS 现状**：Windows schannel 出站 TLS 损坏（`SEC_E_NO_CREDENTIALS`），curl/Invoke-WebRequest 不可用；统一用 `dsh-market.mjs`（node.fetch/OpenSSL，已验证可用）。
+> **每轮最多取 1–2 项**（≤3 tool），按下列顺序做完一项再进下一项，禁止多路同发。
 > ```powershell
 > $MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
 > ```

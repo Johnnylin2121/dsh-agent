@@ -13,6 +13,8 @@ dependencies:
 > **记忆分工（2026-09-15 校订）**：Hindsight 插件已于 2026-09-13 卸载，`hindsight_*` 工具**不存在**，不要再调用。domain-memory 管 vault 内领域记忆文件（业务教训，`obsidian_*` 检索，人可读）；DSH 自身会话/工程坑记入 `MEMORY.md`（或 vault `_系统/` 下的工程笔记），业务教训只进 vault，两者不双写。
 # Domain Memory — 领域记忆管理
 
+> **环境适配（2026-09-22）**：①无 `obsidian_*` 工具时改用文件工具（read/write/edit），不重试原生工具。②会话内只加载一次领域记忆，不每轮重读本 SKILL。③每轮 ≤3 tool。
+
 ## 核心原则
 
 1. **每次会话加载**：任何领域 skill 启动时，自动加载该领域最近 N 条记忆 + 匹配当前场景的高优先级规则。
@@ -288,4 +290,4 @@ dependencies:
 
 ## 目录创建
 
-首次写入用 `obsidian_write` 写目标文件即可自动创建父目录；general 域 `通用/决策记忆/` 当前不存在，首次写入自动创建。
+首次写入：有 `obsidian_*` 用 `obsidian_write`，否则用文件工具 `write`（自动建父目录不保证时先建目录）；general 域 `通用/决策记忆/` 当前不存在，首次写入创建。

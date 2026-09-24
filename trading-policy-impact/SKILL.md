@@ -8,6 +8,8 @@ description: >
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # 政策事件追踪
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool；Step 串行分轮，禁止捆绑多步 write。②无 `xueqiu_*` → 已永久跳过（正文有降级）。③会话内不重复重读本 SKILL；失败 1 次→减负单 call。
+
 ## 触发条件
 
 - 仅手动触发（当前无自动钩子）
@@ -46,14 +48,14 @@ description: >
 ```
 
 **事件快讯/情绪补充（用工具抓取）**：
-- ⚠️ 本机 curl 不可用（schannel）；`xueqiu_*`（quote/kline/news/hot/search）与 `_shared/dsh-market.mjs`（node.fetch）均可用：
+- ⚠️ 本机 curl 不可用（schannel）；**本环境无 `xueqiu_*`（2026-09-22 永久跳过）**；以 `_shared/dsh-market.mjs`（node.fetch）+ 新浪 `sina`/东财 push2 为准；快讯补充用 dsh-market get 或 web 可达源，禁止调用 xueqiu_news/quote/kline/hot/search。
   ```powershell
   $MK = "$HOME/.dsh/skills/_shared/dsh-market.mjs"
   node "$MK" get "<新闻/公告/研报 url>"   # 抓页面转纯文本
   node "$MK" index / stocks / sector / sina   # 行情复核
   ```
 - `node "$MK" get` 抓取政策发布后的即时快讯与市场解读页面，作为 web search 的补充。
-- `xueqiu_news`（雪球 7×24 快讯流）纳入快讯补充源，捕捉政策即时反应与市场情绪。
+- ~~`xueqiu_news`~~ **本环境无此工具→跳过**；快讯补充改：`dsh-market get` 抓公开快讯页 + 东财/新浪可解析源，报告标注「雪球不可用」。
 - `node "$MK" sector` / `stocks` / `sina`：给受影响板块/标的口径复核与实时数据（`"市场反应追踪"` 表格的数据来源）。
 
 分析维度：

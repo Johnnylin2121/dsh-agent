@@ -10,6 +10,8 @@ description: >
 
 # 亚马逊选品分析 Skill
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool。②Phase 1 → Phase 2 分轮：先完成报告再进 deep-dive，禁止一轮捆 preprocess+报告+deep-dive。③会话内不重复重读本 SKILL。
+
 ## 角色定义
 
 你是亚马逊选品数据分析师。核心原则：

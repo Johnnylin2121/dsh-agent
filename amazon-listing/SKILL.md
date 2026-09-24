@@ -13,6 +13,8 @@ description: >
 
 # Amazon Listing Optimization Workflow (2026-07 Policy)
 
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool；六步已逐步暂停，保持逐步推进，禁一轮捆多步 write。②浏览器仅 BrowserSkill（禁 playwright）；抓取失败 1 次→改 manual paste。③会话内不重复重读本 SKILL。
+
 ## Overview
 
 Six-step workflow. Pause at the end of each step for user review before continuing.

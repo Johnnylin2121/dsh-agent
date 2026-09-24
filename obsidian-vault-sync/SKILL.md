@@ -5,6 +5,8 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # Obsidian Vault Sync
 
+> **环境适配（2026-09-22）**：①无 `obsidian_*` → 直接走文件工具（上表兜底列），不探测、不重试。②会话内不每轮重读本 SKILL。③每轮 ≤3 tool，批量写仍分批。
+
 自动将文件同步到Obsidian知识库，完成文件复制、entity创建/更新、topic关联更新。
 
 ## 工具优先级（已安装 dsh-obsidian 插件后适用）
