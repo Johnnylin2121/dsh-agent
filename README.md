@@ -31,7 +31,6 @@
 | | `domain-memory` | 跨会话领域记忆管理 |
 | **效率** | `caveman` | 极简输出模式（省token，与 dsh-peak-cost-mode 插件分工：插件管高峰自动、caveman 管用户主动） |
 | | `caveman-commit` | 极简commit信息生成 |
-| | `caveman-compress` | 压缩记忆文件省token（DSH 无 Claude 环境时模型手工压缩） |
 | | `caveman-help` | caveman模式速查 |
 | | `caveman-review` | 极简代码审查 |
 | **通用** | `grill-me` | 苏格拉底式提问 |
