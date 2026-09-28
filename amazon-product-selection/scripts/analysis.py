@@ -122,6 +122,29 @@ SITE_PPC_THRESHOLDS = {
     "default": [2, 5, 10, 15],
 }
 
+# 定价下限的币种化取值（2026-09-28 加）。
+# 原代码写死 `max(ppc*10, 200)` / `max(ppc*20, 500)` —— 那是**墨西哥比索**的
+# 经验值，US/JP/EU 全部套错：US 店铺会拿到 MX$200 的下限建议。
+# 这里按站点币种给区间；某站点若确实没有依据，应当调小或留空，
+# 而不是拿 MX 的数字充数——那正是本模块要消灭的错误类型。
+SITE_DEFAULT_PRICE = {
+    "MX": (200, 500),
+    "US": (15, 50),
+    "JP": (1500, 5000),
+    "EU": (15, 50),
+    "default": (15, 50),
+}
+
+
+def _p2(v, prefix=""):
+    """脏值场景下数值可能是 None。格式化必须能吃 None，
+    否则「宁可不给建议」会在渲染阶段崩成别的错误。"""
+    return f"{prefix}{v:.2f}" if isinstance(v, (int, float)) else "—（数据脏值，不出结论）"
+
+
+def _p0(v, prefix=""):
+    return f"{prefix}{v:.0f}" if isinstance(v, (int, float)) else "—（数据脏值，不出结论）"
+
 
 def infer_site(filename: str) -> dict:
     """
@@ -1196,16 +1219,54 @@ def analyze_keyword_deep_dive(df: pd.DataFrame, keyword: str, site_code: str = "
     }
 
     # 3. 定价分析
-    ppc = row.get('PPC价格_num', 0)
-    spr = row.get('SPR', 0)
+    #
+    # ⚠️ 脏值护栏（2026-09-28 加，理由见下）。
+    # ABA/卖家精灵导出里存在脏值：实测 `2026-07-25 深度分析 teclado inalambrico.md`
+    # 的 PPC = MX$0.03，旧代码算出「广告效率 700.00、PPC/SPR 0.00」，
+    # 再输出「✅ 广告效率高，可提高售价 → 定价 MX$200-500」。
+    # **脏输入直接产出了一份看起来很专业的错误定价建议。**
+    # 同族 amazon-ad-analysis 早已有 `ACOS>10 判脏值` 的 P0 规则，这里一直没复制过来。
+    # 定价是本技能**唯一会直接导致资金决策**的输出，脏值必须在此处拦死。
+    ppc_raw = row.get('PPC价格_num', 0) or 0
+    spr_raw = row.get('SPR', 0) or 0
 
-    pricing = {
-        "PPC价格": ppc,
-        "建议售价下限": max(ppc * 10, 200) if ppc > 0 else 200,  # 经验值：PPC × 10，最低MX$200
-        "建议售价上限": max(ppc * 20, 500) if ppc > 0 else 500,
-        "广告效率": spr / ppc if ppc > 0 else 0,
-        "PPC/SPR比值": ppc / spr if spr > 0 else 0,
-    }
+    # 站点 PPC 下限表，取该站点第一个档位作为"低于它即异常"的基线
+    _site_thr = SITE_PPC_THRESHOLDS.get(site_code, SITE_PPC_THRESHOLDS["default"])[0]
+    ppc_floor = _site_thr * 0.05          # 低于站点阈值 5% 即视为脏值
+    dirty_reasons = []
+    if ppc_raw <= 0:
+        dirty_reasons.append("PPC 缺失或为 0")
+    elif ppc_raw < ppc_floor:
+        dirty_reasons.append(f"PPC={ppc_raw:g} 低于站点脏值线 {ppc_floor:.4f}")
+    if spr_raw <= 0:
+        dirty_reasons.append("SPR 缺失或为 0")
+
+    # 站点默认价区间（原先 200/500 是 MX 比索写死值，US/JP/EU 全错）
+    _default_price = SITE_DEFAULT_PRICE.get(site_code, SITE_DEFAULT_PRICE["default"])
+
+    if dirty_reasons:
+        # 脏值下**不给**定价建议。宁可空着，也不能给一个自信的错误数字。
+        pricing = {
+            "数据状态": "脏值",
+            "脏值原因": "；".join(dirty_reasons),
+            "PPC价格": ppc_raw,
+            "SPR": spr_raw,
+            "建议售价下限": None,
+            "建议售价上限": None,
+            "广告效率": None,
+            "PPC/SPR比值": None,
+            "处理建议": "该行定价与广告效率结论**作废**，请回源文件核对 PPC/SPR 后重跑。"
+                        "脏值是唯一能把结构化分析直接变成有害输出的东西，此处不做兜底猜测。",
+        }
+    else:
+        pricing = {
+            "数据状态": "正常",
+            "PPC价格": ppc_raw,
+            "建议售价下限": max(ppc_raw * 10, _default_price[0]),
+            "建议售价上限": max(ppc_raw * 20, _default_price[1]),
+            "广告效率": spr_raw / ppc_raw,
+            "PPC/SPR比值": ppc_raw / spr_raw if spr_raw > 0 else 0,
+        }
 
     # 4. 差异化机会
     title_density = row.get('标题密度', 0)
@@ -1311,11 +1372,15 @@ def generate_deep_dive_report(analysis: dict, currency: str = "MX$", domain: str
 
 | 指标 | 数值 |
 |------|------|
-| PPC价格 | {currency}{pricing['PPC价格']:.2f} |
-| 建议售价下限 | {currency}{pricing['建议售价下限']:.0f} |
-| 建议售价上限 | {currency}{pricing['建议售价上限']:.0f} |
-| 广告效率 (SPR/PPC) | {pricing['广告效率']:.2f} |
-| PPC/SPR比值 | {pricing['PPC/SPR比值']:.2f} |
+| PPC价格 | {_p2(pricing['PPC价格'], currency)} |
+| SPR | {_p2(pricing.get('SPR'), '')} |
+| 数据状态 | {pricing.get('数据状态', '正常')} |
+| 建议售价下限 | {_p0(pricing['建议售价下限'], currency)} |
+| 建议售价上限 | {_p0(pricing['建议售价上限'], currency)} |
+| 广告效率 (SPR/PPC) | {_p2(pricing['广告效率'], '')} |
+| PPC/SPR比值 | {_p2(pricing['PPC/SPR比值'], '')} |
+
+> {pricing.get('处理建议', '')}
 
 **定价建议**：
 """

@@ -45,7 +45,15 @@ description: >
 - **行情/技术面**：主用东方财富（`stocks`，口径基准），用 `sina`（实时含买卖盘）**交叉复核**；K线走 `kline`（无图，纯数据）。**无 xueqiu_quote/kline**。
 - **个股主力资金**：`dsh-market.mjs` **无个股资金子命令**（仅 index/stocks/sector/sina/kline/get）——用**三层代理**：①板块资金（`sector`）②K线量能趋势（`kline`，价量背离判断）③Vault 历史复盘主力记录（`交易体系/交易记忆/`+复盘，如南山 8/17-8/20 主力序列）；最后可提示用户用交易终端复核。
 - **舆情/事件核实**：`web_search`（优先）+ `node "$MK" get "<网页>"` 补充；**商品/公告/事件异动时（如期货单日大幅波动、公司公告突发）必须 web_search 核实驱动再写入扫描**——8/26 巴西复产核实即靠此（8/17 减产催化 1 周内回吐的完整证据链）。
-- **代码/标的名定位**：`node "$MK" get "https://searchapi.eastmoney.com/api/suggest/get?input={名}&type=14&token=***REMOVED***"`，或让用户确认；`{VAULT_PATH}/wiki/entities/` 找不到对应 entity 时优先这样做。
+- **代码/标的名定位**：`node "$MK" get "https://searchapi.eastmoney.com/api/suggest/get?input={名}&type=14&token=$env:EASTMONEY_TOKEN"`，或让用户确认；`{VAULT_PATH}/wiki/entities/` 找不到对应 entity 时优先这样做。
+  - **凭据不得写进本文件**（2026-09-28 修正）。本 skill 早前把东财 token 明文写在正文里，
+    而本仓 `~/.dsh/skills` 是 `git@github.com:Johnnylin2121/dsh-agent.git` 的工作区——
+    **凭据随正文一起进了 git 历史，删掉正文不等于撤销泄露**。
+  - token 改从环境变量 `EASTMONEY_TOKEN` 读取；未设置时该接口不可用，
+    **降级路径**：改用 `node "$MK" get "https://searchapi.eastmoney.com/api/suggest/get?input={名}&type=14"`
+    （无 token 多数请求仍可用），或让用户直接给出 6 位代码，**不要因为拿不到就猜代码**。
+  - 已在 `push-scan` 白名单里加了本行模式的**占位**形式（`token=$env:` 而非真实值）；
+    后续任何人把真实 token 写回来，扫描器应当**命中并阻止 push**。
 - **冲突规则（硬性）**：多源数值不一致 → 在扫描报告"基本面快照 / 技术面"中**显著标注**（如 `⚠️ 数据冲突：东财 vs 新浪`），**不自动取信任一**；估值/财务类以东方财富口径为准。
 - **机构评级接口**：`data.eastmoney.com/report/stock/{code}.html` 常返回空（8/21 实测 RPT_RES_REPORT 无数据）——**拿不到时机构动态栏以自评替代并标注"自评"**，不硬等。
 - **公告接口**：`data.eastmoney.com/notices/stock/{code}.html` 若 `get` 返回空，改用 np-anotice 公告接口或 web_search 补齐（近30天标题+类型即可）。
