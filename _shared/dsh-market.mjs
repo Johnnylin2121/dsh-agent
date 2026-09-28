@@ -73,7 +73,20 @@ async function cmdSina(symbolsArg) {
   const buf = Buffer.from(await r.arrayBuffer())
   const text = decodeGbk(buf)
   const num = (v) => (v === undefined || v === null || v === '' ? null : Number(v))
-  const pctOf = (price, base) => (num(base) ? (((num(price) - num(base)) / num(base)) * 100).toFixed(2) : null)
+  // 缺价 ≠ 跌停。盘前/集合竞价未撮合/停牌时新浪返回 price=0 而 prevClose 仍为正，
+  // 旧实现会派生出 pct="-100.00" 的伪信号（2026-09-28 09:15 实测）。这里 fail closed 返回 null。
+  const pctOf = (price, base) => {
+    const p = num(price)
+    const b = num(base)
+    if (b === null || b <= 0) return null
+    if (p === null || p <= 0) return null
+    return (((p - b) / b) * 100).toFixed(2)
+  }
+  // 消费方据此判断该行是否真有成交价，避免把盘前空值当行情
+  const tickReady = (price) => {
+    const p = num(price)
+    return p !== null && p > 0
+  }
   const out = []
   for (const line of text.split('\n').filter(Boolean)) {
     const m = line.match(/var hq_str_(\w+)="([^"]*)"/)
@@ -88,6 +101,7 @@ async function cmdSina(symbolsArg) {
         price: num(price), open: num(open), high: num(high), low: num(low),
         bid: num(bid), ask: num(ask), prevClose: num(prevSettle), prevSettle: num(prevSettle),
         openInterest: num(openInterest), volume: num(volume), pct: pctOf(price, prevSettle),
+        tickReady: tickReady(price),
       })
     } else if (/^hf_/i.test(symbol)) {
       // 国际期货 hf_（15 字段）：[0]最新 [2]买价 [3]卖价 [4]最高 [5]最低 [6]时间 [7]昨收 [8]开盘 [12]日期 [13]名称
@@ -96,6 +110,7 @@ async function cmdSina(symbolsArg) {
         symbol, kind: 'hf', name, date, time,
         price: num(price), open: num(open), high: num(high), low: num(low),
         bid: num(bid), ask: num(ask), prevClose: num(prevClose), pct: pctOf(price, prevClose),
+        tickReady: tickReady(price),
       })
     } else {
       // A 股/指数 10 字段：[0]名称 [1]今开 [2]昨收 [3]最新 [4]最高 [5]最低 [6]买一 [7]卖一 [8]成交量 [9]成交额
@@ -105,6 +120,7 @@ async function cmdSina(symbolsArg) {
         price: num(price), open: num(open), high: num(high), low: num(low),
         bid: num(bid), ask: num(ask), prevClose: num(prevClose),
         volume: num(volume), amountYuan: num(amount), pct: pctOf(price, prevClose),
+        tickReady: tickReady(price),
       })
     }
   }
