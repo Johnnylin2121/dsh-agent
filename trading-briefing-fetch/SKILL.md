@@ -5,6 +5,11 @@ description: 早报自动层数据抓取（akshare+快讯）。商品价格表/�
 
 # 早报自动层数据抓取 (briefing-fetch)
 
+> ⚠️ **已降级（2026-09-28）**：本 skill 纯搬运、judgment=0，且**已被下游绕过**——
+> 09-17 草稿缺失时 briefing-review 直接用 dsh-market+RSS 完成全部 13 项对照。
+> **仅作为可选 command job 保留**：用户明确要求"跑早报数据表"时才用。
+> 日常复核流程不依赖本 skill；review 缺失自动层时用 `dsh-market` + `rss-digest` 替代。
+
 > **环境适配（2026-09-22）**：①每轮 ≤3 tool；write/task 分轮。②脚本失败→重试 1 次后保留 [待补]，禁止捆绑多阶段。③不依赖 `xueqiu_*`。④会话内不重复 read 本 SKILL。
 
 ## 定位

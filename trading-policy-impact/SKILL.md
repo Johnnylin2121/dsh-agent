@@ -8,6 +8,11 @@ description: >
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # 政策事件追踪
 
+> ⚠️ **已并入 trading-briefing-review（2026-09-28）**：本 skill 的**政策事件核验**子项已并入
+> `trading-briefing-review` 第二节（重大政策/事件在早读复核时自动核验）。
+> 本 skill 仅保留**政策追踪文件的建立/更新工作流**（`wiki/topics/{政策名}-政策追踪.md`），
+> 不再作为独立技能主动触发。
+
 > **环境适配（2026-09-22）**：①每轮 ≤3 tool；Step 串行分轮，禁止捆绑多步 write。②无 `xueqiu_*` → 已永久跳过（正文有降级）。③会话内不重复重读本 SKILL；失败 1 次→减负单 call。
 
 ## 触发条件
