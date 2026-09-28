@@ -67,6 +67,7 @@
 | push 防护脚本（pre-push / push-scan / check-drift） | `dsh-agent/push-guard/`，镜像到 `{DSH_HOME}/git-hooks` | ✅ |
 | agent preset 源 | `{DSH_HOME}/.agent-presets` ↔ 仓 `dsh-agent-presets` | ✅（另一仓） |
 | 插件运行时本体 | `{DSH_HOME}/profiles/web/node_modules/` | ❌ 靠 `plugins/package.json` + `restore-plugins.ps1` 重建 |
+| `browser-skill` 插件 | `{DSH_HOME}/profiles/web/node_modules/` | ❌ **非本仓资产**，不在 dsh-agent git 管理；靠 `plugins/package.json` + `restore-plugins.ps1` 重建。被 amazon-ad-analysis/amazon-listing/amazon-product-selection 等技能依赖，uptime 113h 关键组件——换机/重装后无本地副本 |
 | profile 配置 `cordis.patch.yml` | 本地（机器相关 + 含密钥） | ❌ |
 | 全局记忆 / 设置 / 凭据：`MEMORY.md`、`settings.yaml`、`.credentials.yaml` | `{DSH_HOME}/` | ❌（PII / 密钥） |
 | 交易、亚马逊业务产物（复盘、早读、ASIN 分析、选品报告…） | `{VAULT_PATH}` | ❌（vault 自带同步） |

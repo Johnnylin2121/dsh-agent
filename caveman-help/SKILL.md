@@ -17,9 +17,6 @@ Display this reference card when invoked. One-shot — do NOT change mode, write
 | **Lite** | `/caveman lite` | Drop filler. Keep sentence structure. |
 | **Full** | `/caveman` | Drop articles, filler, pleasantries, hedging. Fragments OK. Default. |
 | **Ultra** | `/caveman ultra` | Bare fragments, each fact stated once. No invented abbreviations, no arrows. |
-| **Wenyan-Lite** | `/caveman wenyan-lite` | Semi-classical register, light compression. |
-| **Wenyan-Full** | `/caveman wenyan-full` | Full 文言文. Maximum classical terseness. |
-| **Wenyan-Ultra** | `/caveman wenyan-ultra` | Extreme classical compression, maximum terse. |
 
 Mode stick until changed or session end.
 
@@ -39,26 +36,6 @@ Say "stop caveman" or "normal mode". Resume anytime with `/caveman`.
 ## Language
 
 Keep user's language by default. User write Portuguese → reply Portuguese caveman. Compress the style, not the language. Technical terms, code, commands, commit types, and exact error strings stay verbatim unless user ask for translation.
-
-## Configure Default Mode
-
-> Upstream only — DSH 无 hook/会话启动机制，本节在 DSH 下无效。
-
-Default mode = `full`. Change it:
-
-**Environment variable** (highest priority):
-```bash
-export CAVEMAN_DEFAULT_MODE=ultra
-```
-
-**Config file** (`~/.config/caveman/config.json`):
-```json
-{ "defaultMode": "lite" }
-```
-
-Set `"off"` to disable auto-activation on session start. User can still activate manually with `/caveman`.
-
-Resolution: env var > config file > `full`.
 
 ## More
 

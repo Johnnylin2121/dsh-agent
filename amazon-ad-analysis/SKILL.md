@@ -304,13 +304,14 @@ Phase 7  归档：按 references/output-spec.md 生成 Markdown + 9-sheet Excel 
 
 **目的**：抓取 Amazon 前台产品页面信息，为 Phase 5 关键词覆盖分析和 Listing 优化建议提供数据基础。
 
-**抓取方式（DSH 无浏览器自动化，三档降级）**：
+**抓取方式（四档降级）**：
 
 | 档位 | 方式 | 工具/命令 | 说明 |
 |------|------|-----------|------|
-| 1-Jina（默认） | Jina Reader | `curl 'https://r.jina.ai/http://amazon.com/dp/{ASIN}'` 或 Python requests | **已知限制：免费层通常只能拿到标题片段**，bullets/A+/描述/图片可能缺失；拿到什么存什么 |
-| 2-手动 | 用户提供 | 提供 `listing.json` 模板让用户从卖家后台/前台粘贴 | 模板：`{asin, url, title, bullets[], description, aplus, images[], backend_search_terms, scrape_success}` |
-| 3-跳过 | 标注 | - | 报告标注"前台数据未获取"，覆盖分析降级为"仅标题模式"或跳过 |
+| 1-read_page（默认） | modsearch bridge | `read_page` URL=`https://www.amazon.com/dp/{ASIN}` | **首选**。通过 modsearch bridge 读取页面内容，提取 title/bullets/description/aplus |
+| 2-browser-skill | 浏览器自动化 | `skill browser-skill` → `browser_session start` → Amazon 商品页 → `browser_inspect observe` | **备选**。read_page 截断/失败时用浏览器自动化抓取完整页面 |
+| 3-手动 | 用户提供 | 提供 `listing.json` 模板让用户从卖家后台/前台粘贴 | 模板：`{asin, url, title, bullets[], description, aplus, images[], backend_search_terms, scrape_success}` |
+| 4-跳过 | 标注 | - | 报告标注"前台数据未获取"，覆盖分析降级为"仅标题模式"或跳过 |
 
 **抓取结果结构化**（无论哪一档，输出结构与档位1一致，缺字段置空并标注）：
 
@@ -325,7 +326,7 @@ listing_data = {
     'images': [...],         # 同上
     'backend_search_terms': '需从卖家后台获取',
     'scrape_success': True,
-    'scrape_mode': 'jina'    # jina / manual / skip
+    'scrape_mode': 'read_page'    # read_page / browser-skill / manual / skip
 }
 ```
 
@@ -887,6 +888,7 @@ ACOS = CPC ÷ (CVR × 客单价)
 **Markdown报告检查**（骨架以 `references/output-spec.md` 第 2 节为准，6 节顺序不可变）：
 - [ ] **元数据头完整**（数据范围/店铺/分析时间/口径/**数据级别 A-B-C**/降级项/附件链接）
 - [ ] **决策摘要 ≤5 条动作卡**，每卡七字段齐全（动作/标的/数字依据/预期影响/验证日/回滚条件/难度）；**无动作时写了"无动作 + 理由"**
+- [ ] **outcome_30d 挂一次性 timer**：每个操作建议的验证日用 `timer_agent` 工具挂一次性 timer（`run_at` 参数），到时提醒验证效果
 - [ ] **产品概览完整**（售价、评分、月销、CVR、ACOS、TACOS、ROAS、自然订单占比、Listing摘要）
 - [ ] **核心问题已提炼**（1-3个关键问题，每个有数据支撑）
 - [ ] **ASIN 决策矩阵按动作分组**（6 组：立即止损/降价优化/加投/修Listing/观察/停售）

@@ -89,7 +89,7 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 根据 Step 0 确定的目标知识网络（`wiki/`、`wiki-work/` 或 `wiki-reading/`），对每个提取的关键词：
 
 1. 检查 `{知识网络}/entities/{关键词}.md` 是否存在
-2. **存在**：更新frontmatter中的`sources`和`updated`字段，添加新的引用
+2. **存在**：**写前存 `.trash` 快照**（`obsidian_read` 读取原文件内容，`write` 到 `.trash/{关键词}-{日期}.md`），再更新frontmatter中的`sources`和`updated`字段，添加新的引用
 3. **不存在**：创建新entity文件，包含：
    - frontmatter（type: entity, created, updated, tags, sources, related）
    - 基本信息
@@ -100,7 +100,7 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 对每个提取的主题：
 
 1. 检查 `{知识网络}/topics/{主题}.md` 是否存在
-2. **存在**：更新frontmatter中的`sources`和`updated`字段，添加新的引用
+2. **存在**：**写前存 `.trash` 快照**（`obsidian_read` 读取原文件内容，`write` 到 `.trash/{主题}-{日期}.md`），再更新frontmatter中的`sources`和`updated`字段，添加新的引用
 3. **不存在**：创建新topic文件，包含：
    - frontmatter（type: topic, created, updated, tags, sources, related）
    - 概述
@@ -119,6 +119,7 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
    - 交易 → `wiki/index.md`；工作 → `wiki-work/index.md`；读书 → `wiki-reading/index.md`
 3. **格式合规** — 新建资源文件是否符合标准格式
 4. **Frontmatter** — 新建页面是否含 `type/created/updated/tags`
+5. **写后回读校验** — 重新 `obsidian_read` 每个新建/修改的 entity/topic 文件，确认 `## 近期动态` 节非空（22.5% 产出是空节，已发生损伤）。空节 → 立即修复或标注"无动态"
 
 发现可自动修复的问题 → 立即修复并记录；需人工判断的 → 在报告中标注。
 
