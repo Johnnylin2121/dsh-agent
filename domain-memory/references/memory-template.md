@@ -29,7 +29,7 @@ confidence: high | medium | low  # 这条记忆的可靠程度
 
 ## 领域模板：Trading（交易）
 
-路径：`交易体系/交易记忆/YYYY-MM-DD-交易记忆.md`
+路径：`交易体系/07.交易记忆/YYYY-MM-DD-交易记忆.md`
 
 ### Body 结构
 
