@@ -347,7 +347,10 @@ output:
   # Obsidian Vault 输出根目录（Phase 0 需求澄清时确认/覆盖）
   # 默认结构见 SKILL.md 归档章节；本店实测使用: {VAULT_PATH}\工作\亚马逊工作管理\亚马逊分析（2026-08-28 用户确认默认值）
   vault_root: '{VAULT_PATH}/工作/亚马逊工作管理/亚马逊分析'
-  attachment_dir: '{VAULT_PATH}/工作/亚马逊工作管理/附件'
+  # 2026-09-30 更正：原值 '{VAULT_PATH}/工作/亚马逊工作管理/附件' 是 2026-09-28
+  # 重组前的旧路径，照此写入会把 xlsx 落到错误目录树。正确位置见 AGENTS.md
+  # 「附件/ 编号即分类」与 references/output-spec.md 第 1 节。
+  attachment_dir: '{VAULT_PATH}/附件/6.亚马逊体系'
   save_checkpoints: true
   report_format:
     - 'markdown'
@@ -394,9 +397,11 @@ analysis:
     include_new_customer_analysis: true
 
 # Listing 抓取档位（Phase 4A 使用，按序降级）
+# 2026-09-30 更正：原为 ['jina','manual','skip'] + r.jina.ai 端点，那是已被取代的
+# 抓取方式；SKILL.md 4A 现行档位为 read_page → browser-skill → manual → skip。
+# 保留 jina 键会让 agent 误选一条实际未验证的通道。
 listing_scrape:
-  modes: ['jina', 'manual', 'skip']
-  jina_url_template: 'https://r.jina.ai/http://amazon.com/dp/{ASIN}'
+  modes: ['read_page', 'browser-skill', 'manual', 'skip']
 
 # 执行环境
 environment:

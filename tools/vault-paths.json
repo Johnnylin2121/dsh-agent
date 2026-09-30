@@ -1,9 +1,9 @@
 {
  "$comment": "vault 路径基线 —— 由 tools/sync-vault-paths.mjs 生成，勿手改。只含 vault 相对路径。",
- "generatedAt": "2026-09-30 01:59:20",
+ "generatedAt": "2026-09-30 07:59:02",
  "generatedFrom": "local vault（绝对路径不入库）",
  "counts": {
-  "dirs": 79,
+  "dirs": 80,
   "files": 4
  },
  "exempt": [
@@ -66,6 +66,7 @@
   "协作规范/规范",
   "工作",
   "工作/亚马逊工作管理",
+  "工作/亚马逊工作管理/亚马逊分析",
   "工作/亚马逊工作管理/记忆管理",
   "工作/亚马逊工作管理/记忆管理/Listing记忆",
   "工作/亚马逊工作管理/记忆管理/广告记忆",

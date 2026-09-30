@@ -18,3 +18,13 @@ jobs:
           node-version: '20'
       - name: 跨端仓库体检
         run: node tools/validate-repo.mjs
+      # 外部源门禁（workflow_migration / timer-agent / ~/.dsh）需要本机 vault，
+      # ubuntu runner 拿不到，故不在 CI 跑——见 tools/README-vault-gates.md。
+      # 本机手动执行（真实 vault 路径不入库，必须显式传入）：
+      #   $env:VAULT_PATH = "D:\path\to\your\vault"
+      #   node tools/vault-path-check-external.mjs
+      #
+      #   ⚠️ 改本门禁的提取逻辑后，必须先做灵敏度自测再信任其"通过"：
+      #     GATE_PROBE=<探针文件> node tools/vault-path-check-external.mjs
+      #   该门禁曾因正则拼装漏括号而只检查一个顶层域却报"通过"，
+      #   绿色结果不等于检查生效。
