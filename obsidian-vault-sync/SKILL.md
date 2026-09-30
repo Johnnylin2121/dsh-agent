@@ -51,10 +51,12 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 
 | 源文件位置 | 目标知识网络 | 实体/主题写入位置 | 索引 |
 |-----------|-------------|------------------|------|
-| `交易体系/`、`附件/1.Mr.dang`、`研究/` | 交易体系 | `wiki/entities/`、`wiki/topics/` | `wiki/index.md` |
-| `工作/` | 工作领域 | `wiki-work/entities/`、`wiki-work/topics/` | `wiki-work/index.md` |
-| `读书/` | 读书领域 | `wiki-reading/entities/`、`wiki-reading/topics/` | `wiki-reading/index.md` |
+| `交易体系/`、`附件/1.Mr.dang 交易体系学习/`、`读书/Mr.dang 交易体系学习/` | 交易体系 | `wiki/entities/`、`wiki/topics/` | `wiki/Wiki索引.md` |
+| `工作/` | 工作领域 | `wiki-work/entities/`、`wiki-work/topics/` | `wiki-work/工作知识索引.md` |
+| `读书/` | 读书领域 | `wiki-reading/entities/`、`wiki-reading/topics/` | `wiki-reading/读书知识索引.md` |
 | 不确定 | 询问用户 | — | — |
+
+> **路径基准（2026-09-30 校准，实测）**：三个索引文件**不叫 `index.md`**（同名会造成图谱歧义，已改名）：`wiki/Wiki索引.md`、`wiki-work/工作知识索引.md`、`wiki-reading/读书知识索引.md`。`研究/` 已并入 `读书/`（其 Mr.dang 交易体系学习内容在 `读书/Mr.dang 交易体系学习/`）；`附件/1.Mr.dang` 全称为 `附件/1.Mr.dang 交易体系学习/`。
 
 **规则：绝不跨域写入**。交易资料只写 `wiki/`，工作资料只写 `wiki-work/`，读书资料只写 `wiki-reading/`。`related:` 中的 `[[wikilink]]` 可跨域引用。
 
@@ -115,8 +117,8 @@ description: 自动将文件同步到Obsidian知识库，包括复制文件、�
 1. **断链检查** — 本次新建/修改的页面中，所有 `[[wikilink]]` 是否指向已存在页面
    - 跨域解析：先查当前域，再查其他域
    - 目标不存在 → 创建该实体/主题页，或去掉 `[[]]`
-2. **Index 同步** — 检查对应域的 index.md 是否包含所有新建页面
-   - 交易 → `wiki/index.md`；工作 → `wiki-work/index.md`；读书 → `wiki-reading/index.md`
+2. **Index 同步** — 检查对应域的索引文件是否包含所有新建页面
+   - 交易 → `wiki/Wiki索引.md`；工作 → `wiki-work/工作知识索引.md`；读书 → `wiki-reading/读书知识索引.md`
 3. **格式合规** — 新建资源文件是否符合标准格式
 4. **Frontmatter** — 新建页面是否含 `type/created/updated/tags`
 5. **写后回读校验** — 重新 `obsidian_read` 每个新建/修改的 entity/topic 文件，确认 `## 近期动态` 节非空（22.5% 产出是空节，已发生损伤）。空节 → 立即修复或标注"无动态"

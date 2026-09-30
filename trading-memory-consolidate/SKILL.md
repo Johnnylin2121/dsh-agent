@@ -55,7 +55,7 @@ description: 交易记忆批量审阅、冲突归因与记忆总表生成工作�
 ## 3. Step 1：批量审阅全部记忆
 
 ```powershell
-Get-ChildItem "{VAULT_PATH}\交易体系\交易记忆" -Filter "2026-*.md" |
+Get-ChildItem "{VAULT_PATH}\交易体系\07.交易记忆" -Filter "2026-*.md" |
   Sort-Object Name |
   ForEach-Object { Write-Output "`n########## FILE: $($_.Name) ##########"; Get-Content $_.FullName -Encoding UTF8 -Raw }
 ```
@@ -103,9 +103,11 @@ Get-ChildItem "{VAULT_PATH}\交易体系\交易记忆" -Filter "2026-*.md" |
 ## 6. Step 4：归档原始记忆
 
 ```powershell
-$dst = "{VAULT_PATH}\交易体系\交易记忆\记忆归档"
+# 注意路径已按 2026-09-28 重组后的编号归档层校准：
+#   记忆正文在 交易体系\07.交易记忆\，历史归档统一在 交易体系\_归档\交易记忆\
+$dst = "{VAULT_PATH}\交易体系\_归档\交易记忆"
 New-Item -ItemType Directory -Force $dst | Out-Null
-Get-ChildItem "{VAULT_PATH}\交易体系\交易记忆" -Filter "2026-*.md" | Sort-Object Name |
+Get-ChildItem "{VAULT_PATH}\交易体系\07.交易记忆" -Filter "2026-*.md" | Sort-Object Name |
   Move-Item -Destination $dst
 ```
 
