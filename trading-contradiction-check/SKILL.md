@@ -9,8 +9,19 @@ description: >
 ---
 ⚠️ **OneDrive 同步提醒**：本 skill 写入的 Vault 位于 OneDrive，大量/频繁写入可能触发同步延迟与文件锁，建议分批操作。
 # 实时矛盾检测
+> ## ⚠️ 写入 vault 前必做（AGENTS 硬规则，优先于本 skill 下文任何旧表述）
+>
+> 1. **先读规范**：`{VAULT_PATH}/_系统/管理规则/AGENTS.md`
+>    （旧位置 `_系统/AGENTS.md` 已随 2026-09-28 重组失效）
+> 2. **再核对路径**：本 skill 里的 vault 路径可能已过期。落盘前
+>    `Test-Path` 确认目标存在——**不要因为"路径看起来对"就 mkdir**。
+>    复验：`node ~/.dsh/skills/tools/vault-path-check-external.mjs`（需设 VAULT_PATH）
+> 3. **写完记审计**：`{VAULT_PATH}/_系统/日志/log.md` 追加七字段（写入者/带时区时间/
+>    操作/目标/来源/摘要/验证）。旧路径 `_系统/log.md` 已失效。
+> 4. **文件签名**：新建 vault 文档首行下方写 `[agent: DSH | <ISO8601 带时区>]`。
+>    签名缺失 = 违规，**与内容对错无关**。
 
-> **环境适配（2026-09-22）**：①每轮 ≤3 tool；write 与 task 分轮，禁止捆绑。②终值/复盘已在上下文则不重拉、不重读本 SKILL。③失败 1 次→减为单 call 或文字汇报。④本 skill 不使用 `xueqiu_*`（交易政策永久禁用）；若需交叉校验行情，用东财+新浪+dsh-market。
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool；write 与 subagent 分轮，禁止捆绑。②终值/复盘已在上下文则不重拉、不重读本 SKILL。③失败 1 次→减为单 call 或文字汇报。④本 skill 不使用 `xueqiu_*`（交易政策永久禁用）；若需交叉校验行情，用东财+新浪+dsh-market。
 
 ## 定位
 

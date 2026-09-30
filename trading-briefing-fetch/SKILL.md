@@ -4,13 +4,24 @@ description: 早报自动层数据抓取（akshare+快讯）。商品价格表/�
 ---
 
 # 早报自动层数据抓取 (briefing-fetch)
+> ## ⚠️ 写入 vault 前必做（AGENTS 硬规则，优先于本 skill 下文任何旧表述）
+>
+> 1. **先读规范**：`{VAULT_PATH}/_系统/管理规则/AGENTS.md`
+>    （旧位置 `_系统/AGENTS.md` 已随 2026-09-28 重组失效）
+> 2. **再核对路径**：本 skill 里的 vault 路径可能已过期。落盘前
+>    `Test-Path` 确认目标存在——**不要因为"路径看起来对"就 mkdir**。
+>    复验：`node ~/.dsh/skills/tools/vault-path-check-external.mjs`（需设 VAULT_PATH）
+> 3. **写完记审计**：`{VAULT_PATH}/_系统/日志/log.md` 追加七字段（写入者/带时区时间/
+>    操作/目标/来源/摘要/验证）。旧路径 `_系统/log.md` 已失效。
+> 4. **文件签名**：新建 vault 文档首行下方写 `[agent: DSH | <ISO8601 带时区>]`。
+>    签名缺失 = 违规，**与内容对错无关**。
 
 > ⚠️ **已降级（2026-09-28）**：本 skill 纯搬运、judgment=0，且**已被下游绕过**——
 > 09-17 草稿缺失时 briefing-review 直接用 dsh-market+RSS 完成全部 13 项对照。
 > **仅作为可选 command job 保留**：用户明确要求"跑早报数据表"时才用。
 > 日常复核流程不依赖本 skill；review 缺失自动层时用 `dsh-market` + `rss-digest` 替代。
 
-> **环境适配（2026-09-22）**：①每轮 ≤3 tool；write/task 分轮。②脚本失败→重试 1 次后保留 [待补]，禁止捆绑多阶段。③不使用 `xueqiu_*`（交易政策永久禁用）。④会话内不重复 read 本 SKILL。
+> **环境适配（2026-09-22）**：①每轮 ≤3 tool；write/subagent 分轮。②脚本失败→重试 1 次后保留 [待补]，禁止捆绑多阶段。③不使用 `xueqiu_*`（交易政策永久禁用）。④会话内不重复 read 本 SKILL。
 
 ## 定位
 为「早读复核」提供**自动数据层**：抓取行情与快讯，与人工正式早读（`交易体系/01.财经早读/`）交叉印证。数据层本身不做观点、不做审阅结论——复核判断走 `trading-briefing-review`。

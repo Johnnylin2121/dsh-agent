@@ -69,7 +69,11 @@ description: 检测Obsidian vault中的过时数据和来源新鲜度问题—�
    - **观点演变** — 非矛盾的正常演变
    - **健康评分** — 矛盾数量/总笔记数量的比例
 3. 聊天窗口只输出报告摘要 + 文件路径，不输出全文
-4. **⚠️ 报告落盘也算 vault 写入，须同时做两件事**（AGENTS 硬规则 3/7）：
+4. **⚠️ 报告落盘也算 vault 写入，须同时做三件事**（AGENTS 硬规则 3/7）：
+   - **先读规范**：落盘前读 `{VAULT_PATH}/_系统/管理规则/AGENTS.md`
+     （旧位置 `_系统/AGENTS.md` 已随 2026-09-28 重组失效），
+     并 `Test-Path` 确认 `wiki/synthesis/` 存在——**不要因为"路径看起来对"就 mkdir**。
+     复验：`node ~/.dsh/skills/tools/vault-path-check-external.mjs`（需设 VAULT_PATH）
    - **文件签名**：报告首行下方写 `[agent: DSH | <ISO8601 带时区>]`。
      签名缺失 = 违规，**与报告内容对错无关**。
      实际已发生过：2026-09-29 产出的 reconcile 报告就缺签名。
