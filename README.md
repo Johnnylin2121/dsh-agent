@@ -7,6 +7,7 @@
 > - `_shared/PORTABILITY.md` — 跨端内容写作规范（占位符、解释器、命令两端写法、常见坑）
 > - `REPO-MAP.md` — 仓库地图：5 个远端仓、本地副本映射、**什么内容放哪里**、缺口清单
 > - 自动门禁：`node tools/validate-repo.mjs`（本地）+ `.github/workflows/validate.yml`（push/PR 自动跑）；隐私扫描由 `push-guard/` 钩子负责
+> - 跟踪自愈：`pwsh -NoProfile -File tools/ensure-tracking.ps1 [-Fix]`——巡检/修复各仓 `main → origin/main` 跟踪（丢失时 `git status` 只显示 `## main`，看不出 ahead/behind）
 > - 许可：MIT（见 `LICENSE`）
 
 ## 包含什么

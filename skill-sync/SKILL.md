@@ -48,6 +48,18 @@ git remote -v
 **规则**：必须为 `main` 分支。如果不是，切换到 `main` 再继续。
 确认 remote 属于上方注册表，避免推错仓库。
 
+**跟踪自愈（每次执行前顺手跑，秒级）**：
+
+```bash
+pwsh -NoProfile -File ~/.dsh/skills/tools/ensure-tracking.ps1        # 巡检（有漂移 exit 1）
+pwsh -NoProfile -File ~/.dsh/skills/tools/ensure-tracking.ps1 -Fix   # 自动修复后再复核
+```
+
+丢失跟踪时 `git status` 只显示 `## main`，**看不到 ahead/behind，易误判为已同步**。
+⚠️ **`git rebase` 不会导致跟踪丢失**（已复现验证）；真因通常是某次
+`git remote remove/add`、`git branch --unset-upstream` 之类命令——本仓多会话
+（DSH / MiMo Desktop / OpenCode）并发写入时尤易发生。
+
 ---
 
 ## 流程

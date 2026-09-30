@@ -58,6 +58,7 @@
 3. 冲突时**以仓库当前 `main` + 业务事实**为准，不用 `--force` 覆盖对方
 4. 机器本地状态（C 通道）冲突**无解也无所谓**：它是每端私有的，别纳入 git
 5. 长任务（如批量复盘、批量分析）**在一端做完再同步**，别两端并行改同一批文件
+6. **别动对方的 remote / upstream 配置**：`git remote remove/add`、`git branch --unset-upstream` 之类命令会清掉 `main → origin/main` 跟踪，之后 `git status` 只显示 `## main`，**看不出 ahead/behind**。实测 `git rebase` **不会**造成此问题（已复现验证）。怀疑被改坏时跑 `pwsh ~/.dsh/skills/tools/ensure-tracking.ps1 -Fix` 自愈
 
 ## 5. 两端差异与豁免（务实版）
 
