@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { checkVaultPaths } from './vault-path-check.mjs';
 
 const ROOT = process.cwd();
 const problems = [];
@@ -76,10 +77,19 @@ for (const f of files) {
   if (text.includes('\r\n')) warnings.push(`含 CRLF 换行（.gitattributes 已固定 LF，建议跑一次规范化）: ${f}`);
 }
 
-// ── 3. 报告 ──
+// ── 3. vault 路径活性（基线来自 tools/vault-paths.json）──
+// 格式门禁抓不到「vault 重组后 skill 路径失效」；这条专治该类问题。
+// 清单缺失时降级为提醒（首次接入、或清单未提交时不阻塞）。
+const vpc = checkVaultPaths(ROOT, files);
+problems.push(...vpc.problems);
+warnings.push(...vpc.warnings);
+const vpcNote = vpc.enabled ? `vault 路径比对：${vpc.checked} 处引用` : 'vault 路径比对：未启用（缺清单）';
+
+// ── 4. 报告 ──
 const line = (s) => console.log(s);
 line(`仓库：${ROOT}`);
 line(`跟踪文件：${files.length}`);
+line(vpcNote);
 line('');
 if (problems.length) {
   line(`❌ 阻塞项 ${problems.length} 条：`);

@@ -7,6 +7,7 @@
 > - `_shared/PORTABILITY.md` — 跨端内容写作规范（占位符、解释器、命令两端写法、常见坑）
 > - `REPO-MAP.md` — 仓库地图：5 个远端仓、本地副本映射、**什么内容放哪里**、缺口清单
 > - 自动门禁：`node tools/validate-repo.mjs`（本地）+ `.github/workflows/validate.yml`（push/PR 自动跑）；隐私扫描由 `push-guard/` 钩子负责
+> - **vault 路径门禁**：`validate-repo.mjs` 内置比对 skill 引用的 vault 路径与基线 `tools/vault-paths.json`，失效路径（含作废的 `存档/` 旧名）直接阻塞——vault 重组后跑 `node tools/sync-vault-paths.mjs` 刷新基线
 > - 跟踪自愈：`pwsh -NoProfile -File tools/ensure-tracking.ps1 [-Fix]`——巡检/修复各仓 `main → origin/main` 跟踪（丢失时 `git status` 只显示 `## main`，看不出 ahead/behind）
 > - 许可：MIT（见 `LICENSE`）
 
