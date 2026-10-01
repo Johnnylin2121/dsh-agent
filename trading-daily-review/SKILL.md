@@ -5,6 +5,18 @@ description: A股每日复盘工作流——涵盖盘前观察清单制定、盘
 
 # 每日复盘工作流
 
+> ## ⚠️ 写入 vault 前必做（AGENTS 硬规则，优先于本 skill 下文任何旧表述）
+>
+> 1. **先读规范**：`{VAULT_PATH}/_系统/管理规则/AGENTS.md`
+>    （旧位置 `_系统/AGENTS.md` 已随 2026-09-28 重组失效）
+> 2. **再核对路径**：本 skill 里的 vault 路径可能已过期。落盘前
+>    `Test-Path` 确认目标存在——**不要因为"路径看起来对"就 mkdir**。
+>    复验：`node ~/.dsh/skills/tools/vault-path-check-external.mjs`（需设 VAULT_PATH）
+> 3. **写完记审计**：`{VAULT_PATH}/_系统/日志/log.md` 追加七字段（写入者/带时区时间/
+>    操作/目标/来源/摘要/验证）。旧路径 `_系统/log.md` 已失效。
+> 4. **文件签名**：新建 vault 文档首行下方写 `[agent: DSH | <ISO8601 带时区>]`。
+>    签名缺失 = 违规，**与内容对错无关**。
+
 > **环境适配硬规则（2026-09-22 立 · 优先于下文任何旧表述）**
 > 1. **雪球**：`xueqiu_*` 工具存在但被交易政策永久禁用 → **跳过**，三源 = 东财 push2 + 新浪 `sina`（`nf_|hf_`）+ `dsh-market` 指数/个股；复盘标注「雪球政策禁用」。禁止调用、禁止因缺失报错重试。
 > 2. **每轮 ≤3 tool**；`write` 与 `subagent` **分轮**；禁止同轮捆绑 write+subagent+pwsh+read+glob。
