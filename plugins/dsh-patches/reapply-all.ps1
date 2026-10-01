@@ -11,12 +11,29 @@ $nm = Join-Path $HOME ".dsh/profiles/$Profile/node_modules"
 $env:DSH_PATCH_PROFILE = $Profile   # 传给内层 patch-*.mjs
 $lines = New-Object System.Collections.Generic.List[string]
 
+# 版本护栏（2026-10-01）：.patched 是**特定插件版本**的派生物；盲覆盖会让另一端版本错配
+# （_shared/PORTABILITY.md：另一端必须能直接用或简单适配后用）。只告警，绝不覆盖。
+function Test-PatchedVersion([string]$Name) {
+    $vf = Join-Path $patches "$Name/PATCHED-VERSION"
+    if (-not (Test-Path $vf)) { return $true }        # 无记录 -> 放行（向后兼容）
+    $want = (Get-Content $vf -Raw).Trim()
+    $pj = Join-Path $nm "$Name/package.json"
+    if (-not (Test-Path $pj)) { return $false }
+    $have = (Get-Content $pj -Raw | ConvertFrom-Json).version
+    if ($have -ne $want) {
+        Write-Host "  [!] $Name 版本不符：.patched 派生自 $want，本机 $have -> 跳过（不覆盖）" -ForegroundColor Yellow
+        Write-Host "      要为你的版本重新生成，改完后更新 $Name/PATCHED-VERSION。" -ForegroundColor DarkGray
+        return $false
+    }
+    return $true
+}
+
 Write-Host '=== 本地补丁重铺 ===' -ForegroundColor Cyan
 
 # ---- 1) deepeye：视觉请求会话头补丁（无哨兵脚本，直接覆盖比对 hash）----
 $src = Join-Path $patches 'dsh-plugin-deepeye/index.mjs.patched'
 $dst = Join-Path $nm 'dsh-plugin-deepeye/lib/index.mjs'
-if ((Test-Path $src) -and (Test-Path $dst)) {
+if ((Test-Path $src) -and (Test-Path $dst) -and (Test-PatchedVersion 'dsh-plugin-deepeye')) {
     if ((Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash) {
         $lines.Add('OK    deepeye       已是补丁版')
     } else {
@@ -25,7 +42,7 @@ if ((Test-Path $src) -and (Test-Path $dst)) {
         $lines.Add($(if ($ok) { 'FIX   deepeye       已重铺' } else { 'FAIL  deepeye       覆盖后校验不一致' }))
     }
 } else {
-    $lines.Add('SKIP  deepeye       源或目标缺失（插件未安装？）')
+    $lines.Add('SKIP  deepeye       源/目标缺失 或 版本不符（见上方告警）')
 }
 
 # ---- 2) xueqiu：TLS 规避 + 浮窗隐藏（幂等脚本）----
@@ -69,7 +86,7 @@ $lines.Add(("{0} context-doctor link 可达={1}" -f $(if (Test-Path (Join-Path $
 # TypeError: ctx.get(...)?.get is not a function（context_audit 工具直接不可用）。
 $src = Join-Path $patches 'dsh-context-doctor/index.js.patched'
 $dst = Join-Path $nm 'dsh-context-doctor/lib/index.js'
-if ((Test-Path $src) -and (Test-Path $dst)) {
+if ((Test-Path $src) -and (Test-Path $dst) -and (Test-PatchedVersion 'dsh-context-doctor')) {
     if ((Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash) {
         $lines.Add('OK    context-doctor 已是适配版')
     } else {
@@ -78,7 +95,7 @@ if ((Test-Path $src) -and (Test-Path $dst)) {
         $lines.Add($(if ($ok) { 'FIX   context-doctor 已重铺' } else { 'FAIL  context-doctor 覆盖后校验不一致' }))
     }
 } else {
-    $lines.Add('SKIP  context-doctor 源或目标缺失（插件未安装？）')
+    $lines.Add('SKIP  context-doctor 源/目标缺失 或 版本不符（见上方告警）')
 }
 # ---- 6) dsh-timer-agent：适配 0.1.7+ 移除的 host.settings.installSection（直接覆盖比对 hash）----
 # 背景见 ~/.dsh/MEMORY.md「0.1.5 → 0.1.7 升级实录」：0.1.7 重写 settings 服务，
@@ -86,7 +103,7 @@ if ((Test-Path $src) -and (Test-Path $dst)) {
 # 上游 main 截至 a2dd60e 未适配，故本地适配。插件 update 后必重打。
 $src = Join-Path $patches 'dsh-timer-agent/index.js.patched'
 $dst = Join-Path $nm 'dsh-timer-agent/lib/index.js'
-if ((Test-Path $src) -and (Test-Path $dst)) {
+if ((Test-Path $src) -and (Test-Path $dst) -and (Test-PatchedVersion 'dsh-timer-agent')) {
     if ((Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash) {
         $lines.Add('OK    timer-agent  已是适配版')
     } else {
@@ -95,7 +112,7 @@ if ((Test-Path $src) -and (Test-Path $dst)) {
         $lines.Add($(if ($ok) { 'FIX   timer-agent  已重铺' } else { 'FAIL  timer-agent  覆盖后校验不一致' }))
     }
 } else {
-    $lines.Add('SKIP  timer-agent  源或目标缺失（插件未安装？）')
+    $lines.Add('SKIP  timer-agent  源/目标缺失 或 版本不符（见上方告警）')
 }
 
 Write-Host ''
