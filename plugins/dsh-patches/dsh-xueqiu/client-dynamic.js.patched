@@ -2,14 +2,14 @@ return {
   inject: ['timer'],
   apply(ctx) {
     styles.insert('\n' +
-      '.xq-tv-shell{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:8px 10px;margin:4px 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);min-width:0;}\n' +
+      '.xq-tv-shell{border:none;border-radius:0;padding:2px 4px;margin:0 0 0 auto;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);background:transparent;min-width:0;flex:1 1 auto;overflow:hidden;}\n' +
       '.xq-tv-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;}\n' +
       '.xq-tv-title{font-weight:700;}\n' +
       '.xq-tv-pill{font-size:11px;padding:1px 7px;border-radius:8px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);white-space:nowrap;}\n' +
-      '.xq-tv-table{display:flex;flex-direction:column;gap:2px;}\n' +
+      '.xq-tv-table{display:flex;flex-direction:row;flex-wrap:nowrap;gap:2px 18px;align-items:baseline;white-space:nowrap;}\n' +
       '.xq-tv-row{display:flex;align-items:baseline;gap:10px;padding:2px 4px;border-radius:6px;}\n' +
       '.xq-tv-row:hover{background:var(--dsw-alias-bg-layer-2);}\n' +
-      '.xq-tv-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
+      '.xq-tv-name{flex:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
       '.xq-tv-code{color:var(--dsw-alias-label-tertiary);font-size:11px;}\n' +
       '.xq-tv-price{font-weight:700;font-variant-numeric:tabular-nums;}\n' +
       '.xq-tv-pct{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;}\n' +
@@ -26,10 +26,10 @@ return {
       '.xq-tv-flag{color:var(--dsw-alias-state-error-primary);font-weight:700;}\n' +
       '.xq-up{color:var(--dsw-alias-state-error-primary);}\n' +
       '.xq-down{color:var(--dsw-alias-state-success-primary);}\n' +
-      '.xq-dock{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;overflow:hidden;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary);margin-bottom:6px;}\n' +
+      '.xq-dock{background:transparent;border:none;border-radius:0;overflow:hidden;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary);margin:0 0 0 auto;max-width:100%;}\n' +
       '.xq-dock *{box-sizing:border-box;}\n' +
       '.xq-dock-head{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--dsw-alias-border-l1);}\n' +
-      '.xq-dock-body{height:52vh;max-height:80vh;overflow-y:auto;padding:8px 12px 10px;}\n' +
+      '.xq-dock-body{height:auto;max-height:none;overflow-y:visible;padding:2px 4px;}\n' +
       '.xq-dock-resize{display:flex;align-items:center;justify-content:center;height:12px;cursor:ns-resize;user-select:none;border-top:1px solid var(--dsw-alias-border-l1);}\n' +
       '.xq-dock-resize span{display:block;width:36px;height:3px;border-radius:2px;background:var(--dsw-alias-border-l2);}\n' +
       '.xq-badge{position:fixed;right:16px;bottom:64px;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px;border-radius:14px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:11.5px;line-height:1.4;color:var(--dsw-alias-label-primary);cursor:grab;user-select:none;pointer-events:auto;z-index:1200;}\n' +
@@ -96,7 +96,7 @@ return {
       '.xq-wgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px;padding:1px 8px 1px 0;}\n' +
       '.xq-witem{white-space:nowrap;display:flex;justify-content:space-between;gap:6px;}\n' +
       '.xq-witem .xq-badge-hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;}\n' +
-      '.xq-idxgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px;padding-bottom:5px;border-bottom:1px solid var(--dsw-alias-border-l2);}\n' +
+      '.xq-idxgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px 16px;padding-bottom:4px;border-bottom:1px solid var(--dsw-alias-border-l2);}\n' +
       '.xq-idxrow{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;}\n' +
       '.xq-grid{display:grid;gap:0;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;overflow:hidden;margin-bottom:8px;}\n' +
       '.xq-grid-hd,.xq-grid-row{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 84px;align-items:center;}\n' +
@@ -161,7 +161,7 @@ return {
       '.xq-hot-row:last-child{border-bottom:none;}\n' +
       '.xq-hot-row:hover{background:var(--dsw-alias-bg-layer-2);}\n' +
       '.xq-rank{font-size:12px;font-weight:700;width:20px;text-align:center;color:var(--dsw-alias-label-secondary);}\n' +
-      '.xq-ticker{display:flex;gap:14px;font-size:11px;color:var(--dsw-alias-label-secondary);padding:2px 2px;flex-wrap:wrap;cursor:pointer;}\n' +
+      '.xq-ticker{display:flex;gap:14px;width:100%;box-sizing:border-box;font-size:11px;color:var(--dsw-alias-label-secondary);padding:2px 2px;flex-wrap:nowrap;white-space:nowrap;cursor:pointer;order:1;}\n' +
       '.xq-ticker:hover{color:var(--dsw-alias-label-primary);}\n' +
       '.xq-tick{display:inline-flex;gap:5px;align-items:baseline;}\n' +
       '.xq-tick-name{color:var(--dsw-alias-label-secondary);}\n' +
@@ -1397,7 +1397,7 @@ return {
         return function () { alive = false; off() }
       }, [])
       if (!ui.hydrated) return null
-      // ⚠️ 本机 patch 2026-09-01（v1.22.13）：浮窗徽章已隐藏（shell.overlay 渲染 null），
+      // ⚠️ 本机 patch 2026-09-01（v1.22.15）：浮窗徽章已隐藏（shell.overlay 渲染 null），
       // 面板收起后由这里的小按钮作为唯一开关入口（原为点击徽章重开）。
       if (!ui.open) {
         return el('button', {

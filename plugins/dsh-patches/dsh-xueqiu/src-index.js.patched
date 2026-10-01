@@ -947,8 +947,22 @@ export default {
             const hostAuth = hostHeader.replace(/^(.*[^:]):\d+$/, '$1')
             const loopback = hostAuth === '127.0.0.1' || hostAuth === 'localhost' || hostAuth === '[::1]' || hostAuth === '::1'
             if (!loopback) { res.writeHead(403); res.end('forbidden'); return }
-            // 浏览器对（哪怕同源的）POST fetch 必带 Origin；无 Origin 一律拒绝（curl/本机进程裸调）
-            if (!origin || (origin !== 'http://' + hostHeader && origin !== 'https://' + hostHeader)) {
+            // [本机 patch 2026-09-30] 同源栅栏放宽：放行 ①Origin 为空 ②与 Host 同源 ③任何非 http(s) 协议来源。
+            // 原假设"浏览器 POST 必带 Origin"对桌面版不成立——Electron 自定义协议下的同源请求 Chromium 不附加 Origin。
+            // ⚠️ 不用早期错误版本（放行 dsh-app://app）；Host 回环校验仍在 403 之前，未削弱。
+            const sameOriginHttp = origin === 'http://' + hostHeader || origin === 'https://' + hostHeader
+            const nonHttpOrigin = !!origin && !/^https?:/i.test(origin)
+            if (!!origin && !sameOriginHttp && !nonHttpOrigin) {
+              // 403 时把 origin/host 落盘到诊断日志（排查先看它，不要猜）：~/.dsh/dsh-xueqiu/xq-rpc-rejected.log
+              try {
+                const fss = await import('node:fs')
+                const ps = await import('node:path')
+                const os = await import('node:os')
+                const dir = ps.join(os.homedir(), '.dsh', 'dsh-xueqiu')
+                fss.mkdirSync(dir, { recursive: true })
+                fss.appendFileSync(ps.join(dir, 'xq-rpc-rejected.log'),
+                  new Date().toISOString() + ' origin=' + JSON.stringify(origin) + ' host=' + JSON.stringify(hostHeader) + '\n')
+              } catch (e) { /* 诊断日志失败不影响 403 语义 */ }
               res.writeHead(403); res.end('forbidden'); return
             }
             const chunks = []

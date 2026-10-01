@@ -18,7 +18,9 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const HOME = process.env.USERPROFILE || process.env.HOME
-const PLUGIN = path.join(HOME, '.dsh', 'profiles', 'web', 'node_modules', 'dsh-rss-digest')
+// profile 可由 DSH_PATCH_PROFILE 指定，默认 web
+const PROFILE = process.env.DSH_PATCH_PROFILE || 'web'
+const PLUGIN = path.join(HOME, '.dsh', 'profiles', PROFILE, 'node_modules', 'dsh-rss-digest')
 const SENTINEL = '本机 patch 2026-09-13'
 const TARGET = 'lib/fetcher.js'
 

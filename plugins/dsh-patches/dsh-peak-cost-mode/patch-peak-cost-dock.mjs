@@ -10,7 +10,9 @@ import { join } from 'node:path'
 
 const SENTINEL = '.peak-cost-dock{display:none !important;}'
 const ANCHOR = "'.peak-cost-report h3{"
-const target = join(homedir(), '.dsh', 'profiles', 'web', 'node_modules', 'dsh-peak-cost-mode', 'client.js')
+// profile 可由 DSH_PATCH_PROFILE 指定，默认 web
+const PROFILE = process.env.DSH_PATCH_PROFILE || 'web'
+const target = join(homedir(), '.dsh', 'profiles', PROFILE, 'node_modules', 'dsh-peak-cost-mode', 'client.js')
 const checkOnly = process.argv.includes('--check')
 
 if (!existsSync(target)) {

@@ -264,8 +264,9 @@ node -e "fetch('https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f1
 - 已持仓计划触发止损线 → 立即提醒
 - 市场出现重大方向变化可能影响已有计划前提 → 提醒审查
 
-**无人值守提醒（现状 · 2026-09-15 校订）**：
-原方案（任务看板 cron 插件 `@linxin666/dsh-client-ui-task-board`）实测未生效：`~/.dsh/task-board/ledger-v2.json` 的 `tasks` 与 `recentRequests` 恒为空，从未创建或触发过任何任务；插件已卸载、数据目录已清。**不要再引用任务看板或任何 `task_*` 工具。**
+**无人值守提醒（现状 · 2026-10-01 校订）**：
+任务看板 cron 插件 `@linxin666/dsh-client-ui-task-board` **现已装回且工具可用**（`task_board_*`，2026-09-15 曾因"从未触发"被卸载，0.2 迁移后随插件集一并装回；桌面版为**唯一属主**——账本 `~/.dsh/task-board/ledger-v2.json` 加独占锁，先启动的一端持有，另一端启动时该条目 not activated）。
+⚠️ 但**"从未生效"的判断未被推翻**：board 至今 `tasks` 仍为 0，没有任务被创建或触发过。因此**本流程的无人物化提醒仍以 `dsh-timer-agent` 为准**，不要因为看板工具能调通就改用它。
 现已装可用替代：`dsh-timer-agent`（工具 `timer_agent`；Host 常驻 60s ticker，5 段 cron；`kind=agent` 到点真起 agent 会话，可指定 `workdir` 项目与 `session` 钉住会话继承上下文；`kind=command` 直接跑脚本、不耗 API）＋ `dsh-notifier`（工具 `notify` / `notify_test`，多渠道推送；**装后需先在它启动时打印的本机管理台配渠道**，默认 `channels: []` 只订阅不发）。
 建议配置：早盘/午盘 `0 10,13 * * 1-5`、尾盘裁决轮 `30 14 * * 1-5`，`kind=agent` + `workdir` = vault 根、prompt 自包含（无人值守不得提问）——触发点错过（睡眠/关机/Host 未运行）直接跳过不补跑；需人工决策处只在回复里标【需人工决策】，不替用户决策。
 备用方案：Windows 计划任务调用 `dsh --profile headless`（DSH 原生 Schedule overlay 在 web-app bundle 里默认 disabled，要用需额外启用 `ui-schedule` + Host Schedule 服务）。

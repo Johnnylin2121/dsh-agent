@@ -3,9 +3,12 @@
 # 背景：pnpm 会重装 node_modules 内的包文件，导致就地补丁被洗掉（2026-09-16 实测：deepeye 补丁被洗 → 视觉 400 MissingSessionID）。
 # 注意：补丁改的是宿主启动时加载的模块文件，铺完必须重启 dsh web 才生效。
 
+param([string]$Profile = 'web')   # 目标 profile：web（默认）或 desktop
+
 $ErrorActionPreference = 'Continue'
 $patches = $PSScriptRoot
-$nm = Join-Path $HOME '.dsh/profiles/web/node_modules'
+$nm = Join-Path $HOME ".dsh/profiles/$Profile/node_modules"
+$env:DSH_PATCH_PROFILE = $Profile   # 传给内层 patch-*.mjs
 $lines = New-Object System.Collections.Generic.List[string]
 
 Write-Host '=== 本地补丁重铺 ===' -ForegroundColor Cyan
@@ -61,9 +64,42 @@ if (Test-Path (Join-Path $d 'patch-peak-cost-dock.mjs')) {
 # ---- 5) context-doctor：link: 指向工作区补丁版，不需要铺，只校验可达 ----
 $cd = Join-Path $nm 'dsh-context-doctor'
 $lines.Add(("{0} context-doctor link 可达={1}" -f $(if (Test-Path (Join-Path $cd 'lib/index.js')) { 'OK   ' } else { 'FAIL ' }), (Test-Path (Join-Path $cd 'lib/index.js'))))
+# ---- 7) dsh-context-doctor：适配 0.2 移除的 settings.get()（同类破坏性变更，直接覆盖比对 hash）----
+# 原代码 `ctx.get("settings")?.get(ns)` 只挡服务为 null，挡不住"服务在但无此方法" →
+# TypeError: ctx.get(...)?.get is not a function（context_audit 工具直接不可用）。
+$src = Join-Path $patches 'dsh-context-doctor/index.js.patched'
+$dst = Join-Path $nm 'dsh-context-doctor/lib/index.js'
+if ((Test-Path $src) -and (Test-Path $dst)) {
+    if ((Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash) {
+        $lines.Add('OK    context-doctor 已是适配版')
+    } else {
+        Copy-Item $src $dst -Force
+        $ok = (Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash
+        $lines.Add($(if ($ok) { 'FIX   context-doctor 已重铺' } else { 'FAIL  context-doctor 覆盖后校验不一致' }))
+    }
+} else {
+    $lines.Add('SKIP  context-doctor 源或目标缺失（插件未安装？）')
+}
+# ---- 6) dsh-timer-agent：适配 0.1.7+ 移除的 host.settings.installSection（直接覆盖比对 hash）----
+# 背景见 ~/.dsh/MEMORY.md「0.1.5 → 0.1.7 升级实录」：0.1.7 重写 settings 服务，
+# installSection/settingsScope 被彻底移除，第三方插件用旧 API 会 TypeError。
+# 上游 main 截至 a2dd60e 未适配，故本地适配。插件 update 后必重打。
+$src = Join-Path $patches 'dsh-timer-agent/index.js.patched'
+$dst = Join-Path $nm 'dsh-timer-agent/lib/index.js'
+if ((Test-Path $src) -and (Test-Path $dst)) {
+    if ((Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash) {
+        $lines.Add('OK    timer-agent  已是适配版')
+    } else {
+        Copy-Item $src $dst -Force
+        $ok = (Get-FileHash $src).Hash -eq (Get-FileHash $dst).Hash
+        $lines.Add($(if ($ok) { 'FIX   timer-agent  已重铺' } else { 'FAIL  timer-agent  覆盖后校验不一致' }))
+    }
+} else {
+    $lines.Add('SKIP  timer-agent  源或目标缺失（插件未安装？）')
+}
 
 Write-Host ''
 $lines | ForEach-Object { Write-Host $_ }
 Write-Host ''
-Write-Host '铺完请重启 dsh web（模块在启动时加载，改文件不热生效）。' -ForegroundColor Yellow
+Write-Host "铺完请重启对应端（$Profile 的宿主模块在启动时加载，改文件不热生效）。" -ForegroundColor Yellow
 Write-Host 'xueqiu 若提示版本不符而拒绝：确认版本差异后加 --force 重跑本目录 patch-xueqiu.mjs。' -ForegroundColor DarkGray

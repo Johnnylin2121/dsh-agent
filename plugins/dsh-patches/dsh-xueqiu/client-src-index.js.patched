@@ -33,14 +33,18 @@ exports.default = {
   inject: ['timer'],
   apply(ctx) {
     insertStyle('\n' +
-      '.xq-tv-shell{border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:8px 10px;margin:4px 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-1);min-width:0;}\n' +
+      // [local-patch 2026-09-25] 指数条改为横排、紧凑、靠右（用户要求放在 token 统计同一行右端）
+      // shell 用 flex:1 占满 dock 剩余横向空间；table 强制 nowrap——wrap 在窄槽位里会
+      // 逐项换行、退回成视觉上的竖排。overflow:hidden 防止撑破布局。
+      '.xq-tv-shell{border:none;border-radius:0;padding:2px 4px;margin:0 0 0 auto;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);background:transparent;min-width:0;flex:1 1 auto;overflow:hidden;}\n' +
       '.xq-tv-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;}\n' +
       '.xq-tv-title{font-weight:700;}\n' +
       '.xq-tv-pill{font-size:11px;padding:1px 7px;border-radius:8px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);white-space:nowrap;}\n' +
-      '.xq-tv-table{display:flex;flex-direction:column;gap:2px;}\n' +
+      '.xq-tv-table{display:flex;flex-direction:row;flex-wrap:nowrap;gap:2px 18px;align-items:baseline;white-space:nowrap;}\n' +
       '.xq-tv-row{display:flex;align-items:baseline;gap:10px;padding:2px 4px;border-radius:6px;}\n' +
       '.xq-tv-row:hover{background:var(--dsw-alias-bg-layer-2);}\n' +
-      '.xq-tv-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
+      // [local-patch 2026-09-25] 横排后名称不再需要 flex:1 拉伸
+      '.xq-tv-name{flex:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n' +
       '.xq-tv-code{color:var(--dsw-alias-label-tertiary);font-size:11px;}\n' +
       '.xq-tv-price{font-weight:700;font-variant-numeric:tabular-nums;}\n' +
       '.xq-tv-pct{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;}\n' +
@@ -57,10 +61,8 @@ exports.default = {
       '.xq-tv-flag{color:var(--dsw-alias-state-error-primary);font-weight:700;}\n' +
       '.xq-up{color:var(--dsw-alias-state-error-primary);}\n' +
       '.xq-down{color:var(--dsw-alias-state-success-primary);}\n' +
-      '.xq-dock{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;overflow:hidden;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary);margin-bottom:6px;}\n' +
       '.xq-dock *{box-sizing:border-box;}\n' +
       '.xq-dock-head{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--dsw-alias-border-l1);}\n' +
-      '.xq-dock-body{height:52vh;max-height:80vh;overflow-y:auto;padding:8px 12px 10px;}\n' +
       '.xq-dock-resize{display:flex;align-items:center;justify-content:center;height:12px;cursor:ns-resize;user-select:none;border-top:1px solid var(--dsw-alias-border-l1);}\n' +
       '.xq-dock-resize span{display:block;width:36px;height:3px;border-radius:2px;background:var(--dsw-alias-border-l2);}\n' +
       '.xq-badge{position:fixed;right:16px;bottom:64px;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px;border-radius:14px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l2);box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:11.5px;line-height:1.4;color:var(--dsw-alias-label-primary);cursor:grab;user-select:none;pointer-events:auto;z-index:1200;}\n' +
@@ -127,7 +129,13 @@ exports.default = {
       '.xq-wgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px;padding:1px 8px 1px 0;}\n' +
       '.xq-witem{white-space:nowrap;display:flex;justify-content:space-between;gap:6px;}\n' +
       '.xq-witem .xq-badge-hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;}\n' +
-      '.xq-idxgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px;padding-bottom:5px;border-bottom:1px solid var(--dsw-alias-border-l2);}\n' +
+      // [local-patch 2026-09-25] 指数条横排单行、靠右、紧凑（用户要求放在 token 统计同一行右端）
+      // 原为 2 列网格(repeat(2,...))，4 个指数排成 2×2 看起来像竖排；改为 4 列一行。
+      '.xq-idxgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px 16px;padding-bottom:4px;border-bottom:1px solid var(--dsw-alias-border-l2);}\n' +
+      // [local-patch 2026-09-25] dock 收窄靠右，去边框背景，紧贴 token 统计条
+      '.xq-dock{background:transparent;border:none;border-radius:0;overflow:hidden;font-size:13px;line-height:1.45;color:var(--dsw-alias-label-primary);margin:0 0 0 auto;max-width:100%;}\n' +
+      // [local-patch 2026-09-25] dock 主体不再占 52vh 固定高，改为自适应
+      '.xq-dock-body{height:auto;max-height:none;overflow-y:visible;padding:2px 4px;}\n' +
       '.xq-idxrow{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;}\n' +
       '.xq-grid{display:grid;gap:0;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;overflow:hidden;margin-bottom:8px;}\n' +
       '.xq-grid-hd,.xq-grid-row{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 84px;align-items:center;}\n' +
@@ -192,7 +200,7 @@ exports.default = {
       '.xq-hot-row:last-child{border-bottom:none;}\n' +
       '.xq-hot-row:hover{background:var(--dsw-alias-bg-layer-2);}\n' +
       '.xq-rank{font-size:12px;font-weight:700;width:20px;text-align:center;color:var(--dsw-alias-label-secondary);}\n' +
-      '.xq-ticker{display:flex;gap:14px;font-size:11px;color:var(--dsw-alias-label-secondary);padding:2px 2px;flex-wrap:wrap;cursor:pointer;}\n' +
+      '.xq-ticker{display:flex;gap:14px;width:100%;box-sizing:border-box;font-size:11px;color:var(--dsw-alias-label-secondary);padding:2px 2px;flex-wrap:nowrap;white-space:nowrap;cursor:pointer;order:1;}\n' +
       '.xq-ticker:hover{color:var(--dsw-alias-label-primary);}\n' +
       '.xq-tick{display:inline-flex;gap:5px;align-items:baseline;}\n' +
       '.xq-tick-name{color:var(--dsw-alias-label-secondary);}\n' +
@@ -220,7 +228,17 @@ exports.default = {
     function el(type, props, children) { return React.createElement(type, props, children) }
 
     async function call(action, args) {
-      const r = await fetch('/xq-rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, args: args || {} }) }).then(function (res) { return res.json() })
+      // [本机 patch 2026-10-01] 非 JSON 响应兜底：原实现直接 res.json()，服务端返回 "forbidden"(403) 这类纯文本时
+      // 只抛 "Unexpected token ..."，看不出真实 HTTP 状态，排查极难。改为先读文本再解析，非 2xx/非 JSON 时带上状态码。
+      // ⚠️ 本文件由 scripts/gen-static.py 从 dynamic/client.js 生成；若重新生成，需重跑本补丁。
+      const res = await fetch('/xq-rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, args: args || {} }) })
+      const text = await res.text()
+      let r = null
+      try { r = JSON.parse(text) } catch (e) { /* 非 JSON，下面按 HTTP 状态报错 */ }
+      if (!res.ok) {
+        const detail = (r && (r.error || r.message)) || (text ? text.trim().slice(0, 200) : '')
+        throw new Error('xq-rpc HTTP ' + res.status + (detail ? '：' + detail : ''))
+      }
       if (!r || !r.ok) throw new Error((r && r.error) || '调用失败')
       return r.data
     }
@@ -1428,7 +1446,7 @@ exports.default = {
         return function () { alive = false; off() }
       }, [])
       if (!ui.hydrated) return null
-      // ⚠️ 本机 patch 2026-09-01（v1.22.13）：浮窗徽章已隐藏（shell.overlay 渲染 null），
+      // ⚠️ 本机 patch 2026-09-01（v1.22.15）：浮窗徽章已隐藏（shell.overlay 渲染 null），
       // 面板收起后由这里的小按钮作为唯一开关入口（原为点击徽章重开）。
       if (!ui.open) {
         return el('button', {

@@ -17,7 +17,9 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const HOME = process.env.USERPROFILE || process.env.HOME
-const PLUGIN = path.join(HOME, '.dsh', 'profiles', 'web', 'node_modules', 'dsh-xueqiu')
+// profile 可由 DSH_PATCH_PROFILE 指定（reapply-all.ps1 -Profile 会设置），默认 web
+const PROFILE = process.env.DSH_PATCH_PROFILE || 'web'
+const PLUGIN = path.join(HOME, '.dsh', 'profiles', PROFILE, 'node_modules', 'dsh-xueqiu')
 const BACKED_VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json.bak'), 'utf8')).version
 const SENTINEL = '本机 patch 2026-09-01'
 
@@ -54,10 +56,14 @@ let changed = 0
 for (const t of targets) {
   const f = path.join(PLUGIN, t.name)
   if (!fs.existsSync(f)) { console.log(`SKIP ${t.name}（不存在，可能插件已卸载）`); continue }
+  const src = fs.readFileSync(path.join(__dirname, t.patched), 'utf8')
   const cur = fs.readFileSync(f, 'utf8')
-  if (cur.includes(SENTINEL)) { console.log(`SKIP ${t.name}（已打补丁）`); continue }
+  // 2026-10-01 改：原逻辑只判"哨兵存在就 SKIP"，导致 .patched 内容更新后**永远不传播**（陈旧补丁）。
+  // 改为内容比对：相同才 SKIP，不同则覆盖（幂等且能跟上 .patched 的迭代）。
+  if (cur === src) { console.log(`SKIP ${t.name}（与 .patched 一致）`); continue }
+  const wasPatched = cur.includes(SENTINEL)
   fs.copyFileSync(path.join(__dirname, t.patched), f)
-  console.log(`PATCH ${t.name} ✓`)
+  console.log(`${wasPatched ? 'UPDATE' : 'PATCH'} ${t.name} ✓`)
   changed++
 }
 console.log(changed ? `完成：${changed} 个文件已铺回。重启 DSH web 宿主生效。` : '无需修改。')
